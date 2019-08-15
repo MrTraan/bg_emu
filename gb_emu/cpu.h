@@ -70,8 +70,8 @@ struct Cpu {
 	void SetH(bool val) { SetFlag(5, val); }
 	void SetC(bool val) { SetFlag(4, val); }
 
-	bool GetZ() { return (AF.Get() >> 7 & 1) == 1; }
-	bool GetN() { return (AF.Get() >> 6 & 1) == 1; }
-	bool GetH() { return (AF.Get() >> 5 & 1) == 1; }
-	bool GetC() { return (AF.Get() >> 4 & 1) == 1; }
+	bool GetZ() { return BIT_IS_SET(AF.Get(), 7); }
+	bool GetN() { return BIT_IS_SET(AF.Get(), 6); }
+	bool GetH() { return BIT_IS_SET(AF.Get(), 5); }
+	bool GetC() { return BIT_IS_SET(AF.Get(), 4); }
 };
