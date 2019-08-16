@@ -2,7 +2,7 @@
 #include "memory.h"
 
 static int opcodeCyclesCost[] = {
-//  0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f
+	//  0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f
 	1, 3, 2, 2, 1, 1, 2, 1, 5, 2, 2, 2, 1, 1, 2, 1, // 0
 	0, 3, 2, 2, 1, 1, 2, 1, 3, 2, 2, 2, 1, 1, 2, 1, // 1
 	2, 3, 2, 2, 1, 1, 2, 1, 2, 2, 2, 2, 1, 1, 2, 1, // 2
@@ -635,6 +635,390 @@ int Cpu::ExecuteNextOPCode( Memory * mem ) {
 			SetN( false );
 			SetH( false );
 			SetC( !GetC() );
+			break;
+		}
+
+		case 0x40: {
+			// LD B, B
+			B.Set( B.Get() );
+			break;
+		}
+
+		case 0x41: {
+			// LD B, C
+			B.Set( C.Get() );
+			break;
+		}
+
+		case 0x42: {
+			// LD B, D
+			B.Set( D.Get() );
+			break;
+		}
+
+		case 0x43: {
+			// LD B, E
+			B.Set( E.Get() );
+			break;
+		}
+
+		case 0x44: {
+			// LD B, H
+			B.Set( H.Get() );
+			break;
+		}
+
+		case 0x45: {
+			// LD B, L
+			B.Set( L.Get() );
+			break;
+		}
+
+		case 0x46: {
+			// LD B, (HL)
+			B.Set( mem->Read(HL.Get()) );
+			break;
+		}
+
+		case 0x47: {
+			// LD B, A
+			B.Set( A.Get() );
+			break;
+		}
+
+		case 0x48: {
+			// LD C, B
+			C.Set( B.Get() );
+			break;
+		}
+
+		case 0x49: {
+			// LD C, C
+			C.Set( C.Get() );
+			break;
+		}
+
+		case 0x4a: {
+			// LD C, D
+			C.Set( D.Get() );
+			break;
+		}
+
+		case 0x4b: {
+			// LD C, E
+			C.Set( E.Get() );
+			break;
+		}
+
+		case 0x4c: {
+			// LD C, H
+			C.Set( H.Get() );
+			break;
+		}
+
+		case 0x4d: {
+			// LD C, L
+			C.Set( L.Get() );
+			break;
+		}
+
+		case 0x4e: {
+			// LD C, (HL)
+			C.Set( mem->Read( HL.Get() ) );
+			break;
+		}
+
+		case 0x4f: {
+			// LD C, A
+			C.Set( A.Get() );
+			break;
+		}
+
+		case 0x50: {
+			// LD D, B
+			D.Set( B.Get() );
+			break;
+		}
+
+		case 0x51: {
+			// LD D, C
+			D.Set( C.Get() );
+			break;
+		}
+
+		case 0x52: {
+			// LD D, D
+			D.Set( D.Get() );
+			break;
+		}
+
+		case 0x53: {
+			// LD D, E
+			D.Set( E.Get() );
+			break;
+		}
+
+		case 0x54: {
+			// LD D, H
+			D.Set( H.Get() );
+			break;
+		}
+
+		case 0x55: {
+			// LD D, L
+			D.Set( L.Get() );
+			break;
+		}
+
+		case 0x56: {
+			// LD D, (HL)
+			D.Set( mem->Read( HL.Get() ) );
+			break;
+		}
+
+		case 0x57: {
+			// LD D, A
+			D.Set( A.Get() );
+			break;
+		}
+
+		case 0x58: {
+			// LD E, B
+			E.Set( B.Get() );
+			break;
+		}
+
+		case 0x59: {
+			// LD E, C
+			E.Set( C.Get() );
+			break;
+		}
+
+		case 0x5a: {
+			// LD E, D
+			E.Set( D.Get() );
+			break;
+		}
+
+		case 0x5b: {
+			// LD E, E
+			E.Set( E.Get() );
+			break;
+		}
+
+		case 0x5c: {
+			// LD E, H
+			E.Set( H.Get() );
+			break;
+		}
+
+		case 0x5d: {
+			// LD E, L
+			E.Set( L.Get() );
+			break;
+		}
+
+		case 0x5e: {
+			// LD E, (HL)
+			E.Set( mem->Read( HL.Get() ) );
+			break;
+		}
+
+		case 0x5f: {
+			// LD E, A
+			E.Set( A.Get() );
+			break;
+		}
+
+		case 0x60: {
+			// LD H, B
+			H.Set( B.Get() );
+			break;
+		}
+
+		case 0x61: {
+			// LD H, C
+			H.Set( C.Get() );
+			break;
+		}
+
+		case 0x62: {
+			// LD H, D
+			H.Set( D.Get() );
+			break;
+		}
+
+		case 0x63: {
+			// LD H, E
+			H.Set( E.Get() );
+			break;
+		}
+
+		case 0x64: {
+			// LD H, H
+			H.Set( H.Get() );
+			break;
+		}
+
+		case 0x65: {
+			// LD H, L
+			H.Set( L.Get() );
+			break;
+		}
+
+		case 0x66: {
+			// LD H, (HL)
+			H.Set( mem->Read( HL.Get() ) );
+			break;
+		}
+
+		case 0x67: {
+			// LD H, A
+			H.Set( A.Get() );
+			break;
+		}
+
+		case 0x68: {
+			// LD L, B
+			L.Set( B.Get() );
+			break;
+		}
+
+		case 0x69: {
+			// LD L, C
+			L.Set( C.Get() );
+			break;
+		}
+
+		case 0x6a: {
+			// LD L, D
+			L.Set( D.Get() );
+			break;
+		}
+
+		case 0x6b: {
+			// LD L, E
+			L.Set( E.Get() );
+			break;
+		}
+
+		case 0x6c: {
+			// LD L, H
+			L.Set( H.Get() );
+			break;
+		}
+
+		case 0x6d: {
+			// LD L, L
+			L.Set( L.Get() );
+			break;
+		}
+
+		case 0x6e: {
+			// LD L, (HL)
+			L.Set( mem->Read( HL.Get() ) );
+			break;
+		}
+
+		case 0x6f: {
+			// LD L, A
+			L.Set( A.Get() );
+			break;
+		}
+
+		case 0x70: {
+			// LD (HL), B
+			mem->Write( HL.Get(), B.Get() );
+			break;
+		}
+
+		case 0x71: {
+			// LD (HL), C
+			mem->Write( HL.Get(), C.Get() );
+			break;
+		}
+
+		case 0x72: {
+			// LD (HL), D
+			mem->Write( HL.Get(), D.Get() );
+			break;
+		}
+
+		case 0x73: {
+			// LD (HL), E
+			mem->Write( HL.Get(), E.Get() );
+			break;
+		}
+
+		case 0x74: {
+			// LD (HL), H
+			mem->Write( HL.Get(), H.Get() );
+			break;
+		}
+
+		case 0x75: {
+			// LD (HL), L
+			mem->Write( HL.Get(), L.Get() );
+			break;
+		}
+
+		case 0x76: {
+			// HALT
+			Halt();
+			break;
+		}
+
+		case 0x77: {
+			// LD (HL), A
+			mem->Write( HL.Get(), A.Get() );
+			break;
+		}
+
+		case 0x78: {
+			// LD A, B
+			A.Set( B.Get() );
+			break;
+		}
+
+		case 0x79: {
+			// LD A, C
+			A.Set( C.Get() );
+			break;
+		}
+
+		case 0x7a: {
+			// LD A, D
+			A.Set( D.Get() );
+			break;
+		}
+
+		case 0x7b: {
+			// LD A, E
+			A.Set( E.Get() );
+			break;
+		}
+
+		case 0x7c: {
+			// LD A, H
+			A.Set( H.Get() );
+			break;
+		}
+
+		case 0x7d: {
+			// LD A, L
+			A.Set( L.Get() );
+			break;
+		}
+
+		case 0x7e: {
+			// LD A, (HL)
+			A.Set( mem->Read( HL.Get() ) );
+			break;
+		}
+
+		case 0x7f: {
+			// LD A, A
+			A.Set( A.Get() );
 			break;
 		}
 
