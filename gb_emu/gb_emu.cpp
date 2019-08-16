@@ -5,9 +5,10 @@
 int main()
 {
 	Register16 r;
-	r.Set(0);
+	r.Set(0xd00e);
 	r.low.mask = 0xF0;
 
+    printf("%x\n", r.Get());
 	r.high.Set(0x1d);
     printf("%x\n", r.Get());
 	r.low.Set(0xac);
