@@ -32,6 +32,9 @@ struct Register16 {
 };
 
 struct Cpu {
+	typedef void(Cpu::*InstructionPtr)(void);
+	static InstructionPtr s_instructions[0xff];
+
 	Register16  AF;
 	Register16  BC;
 	Register16  DE;
@@ -47,6 +50,10 @@ struct Cpu {
 
 	uint16	   PC;
 	Register16 SP;
+
+	Memory * mem;
+
+	int additionnalTicks;
 
 	// int divider
 
@@ -97,4 +104,133 @@ struct Cpu {
 	bool GetN() { return BIT_IS_SET( AF.Get(), 6 ); }
 	bool GetH() { return BIT_IS_SET( AF.Get(), 5 ); }
 	bool GetC() { return BIT_IS_SET( AF.Get(), 4 ); }
+
+	void Inst0x0();
+	void Inst0x01();
+	void Inst0x02();
+	void Inst0x03();
+	void Inst0x04();
+	void Inst0x05();
+	void Inst0x06();
+	void Inst0x07();
+	void Inst0x08();
+	void Inst0x09();
+	void Inst0x0a();
+	void Inst0x0b();
+	void Inst0x0c();
+	void Inst0x0d();
+	void Inst0x0e();
+	void Inst0x0f();
+	void Inst0x10();
+	void Inst0x11();
+	void Inst0x12();
+	void Inst0x13();
+	void Inst0x14();
+	void Inst0x15();
+	void Inst0x16();
+	void Inst0x17();
+	void Inst0x18();
+	void Inst0x19();
+	void Inst0x1a();
+	void Inst0x1b();
+	void Inst0x1c();
+	void Inst0x1d();
+	void Inst0x1e();
+	void Inst0x1f();
+	void Inst0x20();
+	void Inst0x21();
+	void Inst0x22();
+	void Inst0x23();
+	void Inst0x24();
+	void Inst0x25();
+	void Inst0x26();
+	void Inst0x27();
+	void Inst0x28();
+	void Inst0x29();
+	void Inst0x2a();
+	void Inst0x2b();
+	void Inst0x2c();
+	void Inst0x2d();
+	void Inst0x2e();
+	void Inst0x2f();
+	void Inst0x30();
+	void Inst0x31();
+	void Inst0x32();
+	void Inst0x33();
+	void Inst0x34();
+	void Inst0x35();
+	void Inst0x36();
+	void Inst0x37();
+	void Inst0x38();
+	void Inst0x39();
+	void Inst0x3a();
+	void Inst0x3b();
+	void Inst0x3c();
+	void Inst0x3d();
+	void Inst0x3e();
+	void Inst0x3f();
+	void Inst0x40();
+	void Inst0x41();
+	void Inst0x42();
+	void Inst0x43();
+	void Inst0x44();
+	void Inst0x45();
+	void Inst0x46();
+	void Inst0x47();
+	void Inst0x48();
+	void Inst0x49();
+	void Inst0x4a();
+	void Inst0x4b();
+	void Inst0x4c();
+	void Inst0x4d();
+	void Inst0x4e();
+	void Inst0x4f();
+	void Inst0x50();
+	void Inst0x51();
+	void Inst0x52();
+	void Inst0x53();
+	void Inst0x54();
+	void Inst0x55();
+	void Inst0x56();
+	void Inst0x57();
+	void Inst0x58();
+	void Inst0x59();
+	void Inst0x5a();
+	void Inst0x5b();
+	void Inst0x5c();
+	void Inst0x5d();
+	void Inst0x5e();
+	void Inst0x5f();
+	void Inst0x60();
+	void Inst0x61();
+	void Inst0x62();
+	void Inst0x63();
+	void Inst0x64();
+	void Inst0x65();
+	void Inst0x66();
+	void Inst0x67();
+	void Inst0x68();
+	void Inst0x69();
+	void Inst0x6a();
+	void Inst0x6b();
+	void Inst0x6c();
+	void Inst0x6d();
+	void Inst0x6e();
+	void Inst0x6f();
+	void Inst0x70();
+	void Inst0x71();
+	void Inst0x72();
+	void Inst0x73();
+	void Inst0x74();
+	void Inst0x75();
+	void Inst0x76();
+	void Inst0x77();
+	void Inst0x78();
+	void Inst0x79();
+	void Inst0x7a();
+	void Inst0x7b();
+	void Inst0x7c();
+	void Inst0x7d();
+	void Inst0x7e();
+	void Inst0x7f();
 };
