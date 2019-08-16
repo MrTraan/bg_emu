@@ -2,46 +2,50 @@
 
 #include "gb_emu.h"
 
-struct Register {
-	void Set(uint16 val) {
-		word = val;
-		ApplyMask();
-	}
-	uint16 Get() { return word; }
+struct Register8 {
+	byte mask = 0xFF;
 
-	uint8 GetHigh() {
-		return (uint8)(word >> 8);
-	}
-	uint8 GetLow() {
-		return (uint8)(word & 0xFF);
-	}
-	void SetHigh(uint8 val) {
-		word = (word & 0xFF) + ((uint16)val << 8);
-		ApplyMask();
-		
-	}
-	void SetLow(uint8 val) {
-		word = (word & 0xFF00) + val;
-		ApplyMask();
-	}
-
-	void ApplyMask() {
-		word &= mask;
-	}
+	byte Get() { return value; }
+	void Set(uint8 newVal) { value = newVal; ApplyMask(); }
 	
-	uint16 mask = 0xFFFF; // Mask of the possible value in this register. Only used by AF whose lower byte can't be set
+	void ApplyMask() {
+		value &= mask;
+	}
+
 private:
-	uint16 word = 0;
+	byte value;
+};
+
+struct Register16 {
+	Register8 high;
+	Register8 low;
+
+	void Set(uint16 val) {
+		high.Set(val >> 8);
+		low.Set(val & 0xFF);
+	}
+
+	uint16 Get() {
+		return ((uint16)high.Get() << 8) + low.Get();
+	}
 };
 
 struct Cpu {
-	Register AF;
-	Register BC;
-	Register DE;
-	Register HL;
+	Register16 AF;
+	Register8 & A() { return AF.high; }
+	Register8 & F() { return AF.low; }
+	Register16 BC;
+	Register8 & B() { return BC.high; }
+	Register8 & C() { return BC.low; }
+	Register16 DE;
+	Register8 & D() { return DE.high; }
+	Register8 & E() { return DE.low; }
+	Register16 HL;
+	Register8 & H() { return HL.high; }
+	Register8 & L() { return HL.low; }
 
 	uint16 PC;
-	Register SP;
+	Register16 SP;
 
 	// int divider
 
@@ -54,14 +58,28 @@ struct Cpu {
 		HL.Set(0x000D);
 		SP.Set(0xFFFE);
 
-		AF.mask = 0xFFF0;
+		F().mask = 0xF0;
 	}
+
+	void Add(Register8 & reg, byte val, bool useCarry);
+	void Sub(Register8 & reg, byte val, bool useCarry);
+	void And(Register8 & reg, byte val);
+	void Or(Register8 & reg, byte val);
+	void Xor(Register8 & reg, byte val);
+	void Cp(Register8 & reg, byte val);
+	void Inc(Register8 & reg);
+	void Dec(Register8 & reg);
+
+	void Add16(Register16 & reg, uint16 val);
+	void Add16Signed(Register16 & reg, byte val);
+	void Inc16(Register16 & reg);
+	void Dec16(Register16 & reg);
 
 	void SetFlag(uint8 index, bool val) {
 		if (val == true) {
-			AF.SetLow(BIT_SET(AF.GetLow(), index));
+			A().Set(BIT_SET(F().Get(), index));
 		} else {
-			AF.SetLow(BIT_UNSET(AF.GetLow(), index));
+			A().Set(BIT_UNSET(F().Get(), index));
 		}
 	}
 

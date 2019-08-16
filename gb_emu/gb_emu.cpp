@@ -4,29 +4,29 @@
 
 int main()
 {
-	Register r;
+	Register16 r;
 	r.Set(0);
-	r.mask = 0xFFF0;
+	r.low.mask = 0xF0;
 
-	r.SetHigh(0x1d);
+	r.high.Set(0x1d);
     printf("%x\n", r.Get());
-	r.SetLow(0xac);
+	r.low.Set(0xac);
     printf("%x\n", r.Get());
-	r.SetHigh(0x0d);
+	r.high.Set(0x0d);
     printf("%x\n", r.Get());
-	r.SetHigh(0x00);
+	r.high.Set(0x00);
     printf("%x\n", r.Get());
-	r.SetHigh(0x10);
+	r.high.Set(0x10);
     printf("%x\n", r.Get());
-	r.SetHigh(0x20);
+	r.high.Set(0x20);
     printf("%x\n", r.Get());
-	r.SetLow(0x20);
+	r.low.Set(0x20);
     printf("%x\n", r.Get());
-	r.SetLow(0x00);
+	r.low.Set(0x00);
     printf("%x\n", r.Get());
-	r.SetLow(0x0a);
+	r.low.Set(0x0a);
     printf("%x\n", r.Get());
-	r.SetLow(0xd1);
+	r.low.Set(0xd1);
     printf("%x\n", r.Get());
     return 0;
 }
