@@ -16,7 +16,7 @@ struct Register8 {
 	void ApplyMask() { value &= mask; }
 
 private:
-	byte value;
+	byte value = 0x0;
 };
 
 struct Register16 {
@@ -33,7 +33,7 @@ struct Register16 {
 
 struct Cpu {
 	typedef void (Cpu::* InstructionPtr)(void);
-	static InstructionPtr s_instructions[0xff];
+	static InstructionPtr s_instructions[0x100];
 
 	Register16	AF;
 	Register16  BC;
@@ -51,14 +51,17 @@ struct Cpu {
 	uint16	   PC;
 	Register16 SP;
 
-	Memory* mem = nullptr;
+	Memory* mem;
 
 	int additionnalTicks = 0;
+
+	bool interuptsEnabled = true;
+	bool interuptsOn = true;
 
 	// int divider
 
 	// Initialize CPU with default values
-	Cpu() {
+	Cpu(Memory* _mem) : mem(_mem) {
 		PC = 0x100;
 		AF.Set(0x01B0);
 		BC.Set(0);
@@ -69,9 +72,12 @@ struct Cpu {
 		F.mask = 0xF0;
 	}
 
-	int	   ExecuteNextOPCode(Memory* mem);
-	byte   PopPC(Memory* mem);
-	uint16 PopPC16(Memory* mem);
+	int	   ExecuteNextOPCode();
+	int    ExecuteCBOPCode(uint16 opcode, byte arg);
+	byte   PopPC();
+	uint16 PopPC16();
+	void   PushStack(uint16 val);
+	uint16 PopStack();
 
 	void Add(Register8& reg, byte val, bool useCarry);
 	void Sub(Register8& reg, byte val, bool useCarry);
@@ -81,9 +87,11 @@ struct Cpu {
 	void Cp(Register8& reg, byte val);
 	void Inc(Register8& reg);
 	void Dec(Register8& reg);
+	void Call(uint16 addr);
+	void Ret();
 
 	void Add16(Register16& reg, uint16 val);
-	void Add16Signed(Register16& reg, byte val);
+	void Add16Signed(Register16& reg, int8 val);
 	void Inc16(Register16& reg);
 	void Dec16(Register16& reg);
 
@@ -361,4 +369,5 @@ struct Cpu {
 	void Inst0xfc();
 	void Inst0xfd();
 	void Inst0xfe();
+	void Inst0xff();
 };

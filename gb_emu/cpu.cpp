@@ -1,24 +1,26 @@
 #include "cpu.h"
 #include "memory.h"
 
+#define INVALID_OP DEBUG_BREAK
+
 static int opcodeCyclesCost[] = {
 	//  0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f
-	1, 3, 2, 2, 1, 1, 2, 1, 5, 2, 2, 2, 1, 1, 2, 1, // 0
-	0, 3, 2, 2, 1, 1, 2, 1, 3, 2, 2, 2, 1, 1, 2, 1, // 1
-	2, 3, 2, 2, 1, 1, 2, 1, 2, 2, 2, 2, 1, 1, 2, 1, // 2
-	2, 3, 2, 2, 3, 3, 3, 1, 2, 2, 2, 2, 1, 1, 2, 1, // 3
-	1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1, // 4
-	1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1, // 5
-	1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1, // 6
-	2, 2, 2, 2, 2, 2, 0, 2, 1, 1, 1, 1, 1, 1, 2, 1, // 7
-	1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1, // 8
-	1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1, // 9
-	1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1, // a
-	1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1, // b
-	2, 3, 3, 4, 3, 4, 2, 4, 2, 4, 3, 0, 3, 6, 2, 4, // c
-	2, 3, 3, 0, 3, 4, 2, 4, 2, 4, 3, 0, 3, 0, 2, 4, // d
-	3, 3, 2, 0, 0, 4, 2, 4, 4, 1, 4, 0, 0, 0, 2, 4, // e
-	3, 3, 2, 1, 0, 4, 2, 4, 3, 2, 4, 1, 0, 0, 2, 4, // f
+		1, 3, 2, 2, 1, 1, 2, 1, 5, 2, 2, 2, 1, 1, 2, 1, // 0
+		0, 3, 2, 2, 1, 1, 2, 1, 3, 2, 2, 2, 1, 1, 2, 1, // 1
+		2, 3, 2, 2, 1, 1, 2, 1, 2, 2, 2, 2, 1, 1, 2, 1, // 2
+		2, 3, 2, 2, 3, 3, 3, 1, 2, 2, 2, 2, 1, 1, 2, 1, // 3
+		1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1, // 4
+		1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1, // 5
+		1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1, // 6
+		2, 2, 2, 2, 2, 2, 0, 2, 1, 1, 1, 1, 1, 1, 2, 1, // 7
+		1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1, // 8
+		1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1, // 9
+		1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1, // a
+		1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1, // b
+		2, 3, 3, 4, 3, 4, 2, 4, 2, 4, 3, 0, 3, 6, 2, 4, // c
+		2, 3, 3, 0, 3, 4, 2, 4, 2, 4, 3, 0, 3, 0, 2, 4, // d
+		3, 3, 2, 0, 0, 4, 2, 4, 4, 1, 4, 0, 0, 0, 2, 4, // e
+		3, 3, 2, 1, 0, 4, 2, 4, 3, 2, 4, 1, 0, 0, 2, 4, // f
 };
 
 void Cpu::Add(Register8& reg, byte val, bool useCarry) {
@@ -112,7 +114,7 @@ void Cpu::Add16(Register16& reg, uint16 val) {
 	SetC(total > 0xffff);
 }
 
-void Cpu::Add16Signed(Register16& reg, byte val) {
+void Cpu::Add16Signed(Register16& reg, int8 val) {
 	uint16 valReg = reg.Get();
 	int	   total = valReg + val;
 	reg.Set((uint16)total);
@@ -130,13 +132,24 @@ void Cpu::Dec16(Register16& reg) {
 	reg.Set(reg.Get() - 1);
 }
 
-byte Cpu::PopPC(Memory* mem) {
+// Saves the current execution address on the stack before moving PC the requested address
+void Cpu::Call(uint16 addr) {
+	PushStack(PC);
+	PC = addr;
+}
+
+// Returns by setting PC value to the value on the stack
+void Cpu::Ret() {
+	PC = PopStack();
+}
+
+byte Cpu::PopPC() {
 	byte opcode = mem->Read(PC);
 	PC++;
 	return opcode;
 }
 
-uint16 Cpu::PopPC16(Memory* mem) {
+uint16 Cpu::PopPC16() {
 	byte val1 = mem->Read(PC);
 	PC++;
 	byte val2 = mem->Read(PC);
@@ -144,13 +157,33 @@ uint16 Cpu::PopPC16(Memory* mem) {
 	return ((uint16)val2 << 8) | val1;
 }
 
+// Pushes a 16 bit value on the stack, and decrement the stack pointer
+void Cpu::PushStack(uint16 val) {
+	mem->Write(SP.Get() - 1, BIT_HIGH_8(val));
+	mem->Write(SP.Get() - 2, BIT_LOW_8(val));
+	SP.Set(SP.Get() - 2);
+}
+
+// Read the 16 bits on the stack, and increment the stack pointer
+uint16 Cpu::PopStack() {
+	byte b1 = mem->Read(SP.Get());
+	byte b2 = mem->Read(SP.Get() + 2);
+	SP.Set(SP.Get() + 2);
+	return ((uint16)b2 << 8) + b1;
+}
+
 void Halt() {
 } // TODO: don't know what to do yet with that
 
+int Cpu::ExecuteCBOPCode(uint16 opcode, byte arg) {
+	DEBUG_BREAK; // TODO
+	return 0;
+}
+
 // Return Cycles used
-int Cpu::ExecuteNextOPCode(Memory* mem) {
+int Cpu::ExecuteNextOPCode() {
 	// All instructions are detailled here : https://www.pastraiser.com/cpu/gameboy/gameboy_opcodes.html
-	byte opcode = PopPC(mem);
+	byte opcode = PopPC();
 	int  ticksUsed = opcodeCyclesCost[opcode] * 4;
 	additionnalTicks = 0;
 
@@ -171,7 +204,7 @@ void Cpu::Inst0x00() {
 }
 void Cpu::Inst0x01() {
 	// LD BC, d16
-	uint16 val = PopPC16(mem);
+	uint16 val = PopPC16();
 	BC.Set(val);
 }
 void Cpu::Inst0x02() {
@@ -194,7 +227,7 @@ void Cpu::Inst0x05() {
 }
 void Cpu::Inst0x06() {
 	// LD B, d8
-	byte val = PopPC(mem);
+	byte val = PopPC();
 	B.Set(val);
 }
 void Cpu::Inst0x07() {
@@ -209,7 +242,7 @@ void Cpu::Inst0x07() {
 }
 void Cpu::Inst0x08() {
 	// LD (a16), SP
-	uint16 addr = PopPC16(mem);
+	uint16 addr = PopPC16();
 	mem->Write(addr, SP.low.Get());
 	mem->Write(addr + 1, SP.high.Get());
 }
@@ -236,7 +269,7 @@ void Cpu::Inst0x0d() {
 }
 void Cpu::Inst0x0e() {
 	// LD C, d8
-	byte val = PopPC(mem);
+	byte val = PopPC();
 	C.Set(val);
 }
 void Cpu::Inst0x0f() {
@@ -252,11 +285,11 @@ void Cpu::Inst0x0f() {
 void Cpu::Inst0x10() {
 	// STOP 0
 	Halt();
-	PopPC(mem); // Read next byte, because this instruction is actualy 2 bytes : 0x10 0x00, no idea why
+	PopPC(); // Read next byte, because this instruction is actualy 2 bytes : 0x10 0x00, no idea why
 }
 void Cpu::Inst0x11() {
 	// LD DE, d16
-	BC.Set(PopPC16(mem));
+	BC.Set(PopPC16());
 }
 void Cpu::Inst0x12() {
 	// LD (DE), A
@@ -276,7 +309,7 @@ void Cpu::Inst0x15() {
 }
 void Cpu::Inst0x16() {
 	// LD D, d8
-	D.Set(PopPC(mem));
+	D.Set(PopPC());
 }
 void Cpu::Inst0x17() {
 	// RLA
@@ -291,7 +324,7 @@ void Cpu::Inst0x17() {
 }
 void Cpu::Inst0x18() {
 	// JR r8
-	uint16 addr = PC + PopPC(mem);
+	uint16 addr = PC + PopPC();
 	PC = addr;
 }
 void Cpu::Inst0x19() {
@@ -316,7 +349,7 @@ void Cpu::Inst0x1d() {
 }
 void Cpu::Inst0x1e() {
 	// LD E, d8
-	E.Set(PopPC(mem));
+	E.Set(PopPC());
 }
 void Cpu::Inst0x1f() {
 	// RRA
@@ -332,14 +365,14 @@ void Cpu::Inst0x1f() {
 void Cpu::Inst0x20() {
 	// JR NZ, r8
 	if (!GetZ()) {
-		uint16 addr = PC + PopPC(mem);
+		uint16 addr = PC + PopPC();
 		PC = addr;
 		additionnalTicks += 4;
 	}
 }
 void Cpu::Inst0x21() {
 	// LD HL, d16
-	HL.Set(PopPC16(mem));
+	HL.Set(PopPC16());
 }
 void Cpu::Inst0x22() {
 	// LD (HL+), A
@@ -360,7 +393,7 @@ void Cpu::Inst0x25() {
 }
 void Cpu::Inst0x26() {
 	// LD H, d8
-	H.Set(PopPC(mem));
+	H.Set(PopPC());
 }
 void Cpu::Inst0x27() {
 	// DAA
@@ -398,7 +431,7 @@ void Cpu::Inst0x27() {
 void Cpu::Inst0x28() {
 	// JR Z, r8
 	if (GetZ()) {
-		uint16 addr = PC + PopPC(mem);
+		uint16 addr = PC + PopPC();
 		PC = addr;
 		additionnalTicks += 4;
 	}
@@ -426,7 +459,7 @@ void Cpu::Inst0x2d() {
 }
 void Cpu::Inst0x2e() {
 	// LD L, d8
-	L.Set(PopPC(mem));
+	L.Set(PopPC());
 }
 void Cpu::Inst0x2f() {
 	// CPL
@@ -437,14 +470,14 @@ void Cpu::Inst0x2f() {
 void Cpu::Inst0x30() {
 	// JR NC, r8
 	if (!GetC()) {
-		uint16 addr = PC + PopPC(mem);
+		uint16 addr = PC + PopPC();
 		PC = addr;
 		additionnalTicks += 4;
 	}
 }
 void Cpu::Inst0x31() {
 	// LD SP, d16
-	SP.Set(PopPC16(mem));
+	SP.Set(PopPC16());
 }
 void Cpu::Inst0x32() {
 	// LD (HL-), A
@@ -475,7 +508,7 @@ void Cpu::Inst0x35() {
 }
 void Cpu::Inst0x36() {
 	// LD (HL), d8
-	mem->Write(HL.Get(), PopPC(mem));
+	mem->Write(HL.Get(), PopPC());
 }
 void Cpu::Inst0x37() {
 	// SCF
@@ -486,7 +519,7 @@ void Cpu::Inst0x37() {
 void Cpu::Inst0x38() {
 	// JR C, r8
 	if (GetC()) {
-		uint16 addr = PC + PopPC(mem);
+		uint16 addr = PC + PopPC();
 		PC = addr;
 		additionnalTicks += 4;
 	}
@@ -514,7 +547,7 @@ void Cpu::Inst0x3d() {
 }
 void Cpu::Inst0x3e() {
 	// LD A, d8
-	A.Set(PopPC(mem));
+	A.Set(PopPC());
 }
 void Cpu::Inst0x3f() {
 	// CCF
@@ -938,8 +971,389 @@ void Cpu::Inst0xa7() {
 	// AND A, A
 	And(A, A.Get());
 }
+void Cpu::Inst0xa8() {
+	// XOR A, B
+	Xor(A, B.Get());
+}
+void Cpu::Inst0xa9() {
+	// XOR A, C
+	Xor(A, C.Get());
+}
+void Cpu::Inst0xaa() {
+	// XOR A, D
+	Xor(A, D.Get());
+}
+void Cpu::Inst0xab() {
+	// XOR A, E
+	Xor(A, E.Get());
+}
+void Cpu::Inst0xac() {
+	// XOR A, H
+	Xor(A, H.Get());
+}
+void Cpu::Inst0xad() {
+	// XOR A, L
+	Xor(A, L.Get());
+}
+void Cpu::Inst0xae() {
+	// XOR A, (HL)
+	Xor(A, mem->Read(HL.Get()));
+}
+void Cpu::Inst0xaf() {
+	// XOR A, A
+	Xor(A, A.Get());
+}
+void Cpu::Inst0xb0() {
+	// OR B
+	Or(A, B.Get());
+}
+void Cpu::Inst0xb1() {
+	// OR C
+	Or(A, C.Get());
+}
+void Cpu::Inst0xb2() {
+	// OR D
+	Or(A, D.Get());
+}
+void Cpu::Inst0xb3() {
+	// OR E
+	Or(A, E.Get());
+}
+void Cpu::Inst0xb4() {
+	// OR H
+	Or(A, H.Get());
+}
+void Cpu::Inst0xb5() {
+	// OR L
+	Or(A, L.Get());
+}
+void Cpu::Inst0xb6() {
+	// OR (HL)
+	Or(A, mem->Read(HL.Get()));
+}
+void Cpu::Inst0xb7() {
+	// OR A
+	Or(A, A.Get());
+}
+void Cpu::Inst0xb8() {
+	// CP B
+	Cp(A, B.Get());
+}
+void Cpu::Inst0xb9() {
+	// CP C
+	Cp(A, C.Get());
+}
+void Cpu::Inst0xba() {
+	// CP D
+	Cp(A, D.Get());
+}
+void Cpu::Inst0xbb() {
+	// CP E
+	Cp(A, E.Get());
+}
+void Cpu::Inst0xbc() {
+	// CP H
+	Cp(A, H.Get());
+}
+void Cpu::Inst0xbd() {
+	// CP L
+	Cp(A, L.Get());
+}
+void Cpu::Inst0xbe() {
+	// CP (HL)
+	Cp(A, mem->Read(HL.Get()));
+}
+void Cpu::Inst0xbf() {
+	// CP A
+	Cp(A, A.Get());
+}
+void Cpu::Inst0xc0() {
+	// RET NZ
+	if (!GetZ()) {
+		Ret();
+		additionnalTicks += 12;
+	}
+}
+void Cpu::Inst0xc1() {
+	// POP BC
+	BC.Set(PopStack());
+}
+void Cpu::Inst0xc2() {
+	// JP NZ, a16
+	if (!GetZ()) {
+		PC = PopPC16();
+		additionnalTicks += 4;
+	}
+}
+void Cpu::Inst0xc3() {
+	// JP a16
+	PC = PopPC16();
+}
+void Cpu::Inst0xc4() {
+	// CALL NZ
+	if (!GetZ()) {
+		Call(PopPC16());
+		additionnalTicks += 12;
+	}
+}
+void Cpu::Inst0xc5() {
+	// PUSH BC
+	PushStack(BC.Get());
+}
+void Cpu::Inst0xc6() {
+	// ADD A, d8
+	Add(A, PopPC(), false);
+}
+void Cpu::Inst0xc7() {
+	// RST 0x00
+	Call(0x0000);
+}
+void Cpu::Inst0xc8() {
+	// RET Z
+	if (GetZ()) {
+		Ret();
+		additionnalTicks += 12;
+	}
+}
+void Cpu::Inst0xc9() {
+	// RET
+	Ret();
+}
+void Cpu::Inst0xca() {
+	// JP Z, a16
+	if (GetZ()) {
+		PC = PopPC16();
+		additionnalTicks += 4;
+	}
+}
+void Cpu::Inst0xcb() {
+	// PREFIX CB
+	additionnalTicks += ExecuteCBOPCode(PopPC(), PopPC());
+}
+void Cpu::Inst0xcc() {
+	// CALL Z
+	if (GetZ()) {
+		Call(PopPC16());
+		additionnalTicks += 12;
+	}
+}
+void Cpu::Inst0xcd() {
+	// CALL a16
+	Call(PopPC16());
+}
+void Cpu::Inst0xce() {
+	// ADC A, d8
+	Add(A, PopPC(), true);
+}
+void Cpu::Inst0xcf() {
+	// RST 0x08
+	Call(0x0008);
+}
+void Cpu::Inst0xd0() {
+	// RET NC
+	if (!GetC()) {
+		Ret();
+		additionnalTicks += 12;
+	}
+}
+void Cpu::Inst0xd1() {
+	// POP DE
+	DE.Set(PopStack());
+}
+void Cpu::Inst0xd2() {
+	// JP NC, a16
+	if (!GetC()) {
+		PC = PopPC16();
+		additionnalTicks += 4;
+	}
+}
+void Cpu::Inst0xd3() {
+	INVALID_OP;
+}
+void Cpu::Inst0xd4() {
+	// CALL NC
+	if (!GetC()) {
+		Call(PopPC16());
+		additionnalTicks += 12;
+	}
+}
+void Cpu::Inst0xd5() {
+	// PUSH DE
+	PushStack(DE.Get());
+}
+void Cpu::Inst0xd6() {
+	// SUB A, d8
+	Sub(A, PopPC(), false);
+}
+void Cpu::Inst0xd7() {
+	// RST 0x10
+	Call(0x0010);
+}
+void Cpu::Inst0xd8() {
+	// RET C
+	if (GetC()) {
+		Ret();
+		additionnalTicks += 12;
+	}
+}
+void Cpu::Inst0xd9() {
+	// RETI
+	Ret();
+	interuptsEnabled = true;
+}
+void Cpu::Inst0xda() {
+	// JP C, a16
+	if (GetC()) {
+		PC = PopPC16();
+		additionnalTicks += 4;
+	}
+}
+void Cpu::Inst0xdb() {
+	INVALID_OP;
+}
+void Cpu::Inst0xdc() {
+	// CALL C
+	if (GetC()) {
+		Call(PopPC16());
+		additionnalTicks += 12;
+	}
+}
+void Cpu::Inst0xdd() {
+	INVALID_OP;
+}
+void Cpu::Inst0xde() {
+	// SBC A, d8
+	Sub(A, PopPC(), true);
+}
+void Cpu::Inst0xdf() {
+	// RST 0x18
+	Call(0x0018);
+}
+void Cpu::Inst0xe0() {
+	// LDH (a8), A
+	mem->Write(0xFF00 + PopPC(), A.Get());
+}
+void Cpu::Inst0xe1() {
+	// POP HL
+	HL.Set(PopStack());
+}
+void Cpu::Inst0xe2() {
+	// LD (C), A
+	mem->Write(0xFF00 + C.Get(), A.Get());
+}
+void Cpu::Inst0xe3() {
+	INVALID_OP;
+}
+void Cpu::Inst0xe4() {
+	INVALID_OP;
+}
+void Cpu::Inst0xe5() {
+	// PUSH HL
+	PushStack(HL.Get());
+}
+void Cpu::Inst0xe6() {
+	// AND A, d8
+	And(A, PopPC());
+}
+void Cpu::Inst0xe7() {
+	// RST 0x20
+	Call(0x0020);
+}
+void Cpu::Inst0xe8() {
+	// ADD SP, r8
+	Add16Signed(SP, PopPC());
+	SetZ(false);
+}
+void Cpu::Inst0xe9() {
+	// JP (HL)
+	PC = mem->Read(HL.Get());
+}
+void Cpu::Inst0xea() {
+	// LD (a16), A
+	mem->Write(PopPC16(), A.Get());
+}
+void Cpu::Inst0xeb() {
+	INVALID_OP;
+}
+void Cpu::Inst0xec() {
+	INVALID_OP;
+}
+void Cpu::Inst0xed() {
+	INVALID_OP;
+}
+void Cpu::Inst0xee() {
+	// XOR A, d8
+	Xor(A, PopPC());
+}
+void Cpu::Inst0xef() {
+	// RST 0x28
+	Call(0x0028);
+}
+void Cpu::Inst0xf0() {
+	// LDH A, (a8)
+	A.Set(mem->Read(0xFF00 + PopPC()));
+}
+void Cpu::Inst0xf1() {
+	// TODO: Apparently this might affect flags? But I have no idea how
+	// POP AF
+	AF.Set(PopStack());
+}
+void Cpu::Inst0xf2() {
+	// LD A, (C)
+	A.Set(mem->Read(0xFF00 + C.Get()));
+}
+void Cpu::Inst0xf3() {
+	// DI
+	interuptsOn = false;
+}
+void Cpu::Inst0xf4() {
+	INVALID_OP;
+}
+void Cpu::Inst0xf5() {
+	// PUSH AF
+	PushStack(AF.Get());
+}
+void Cpu::Inst0xf6() {
+	// OR A, d8
+	Or(A, PopPC());
+}
+void Cpu::Inst0xf7() {
+	// RST 0x30
+	Call(0x0030);
+}
+void Cpu::Inst0xf8() {
+	// LD HL, SP+r8
+	HL.Set(SP.Get());
+	Add16Signed(HL, PopPC());
+}
+void Cpu::Inst0xf9() {
+	// LD SP, HL
+	SP.Set(HL.Get());
+}
+void Cpu::Inst0xfa() {
+	// LD A, (a16)
+	A.Set(mem->Read(PopPC16()));
+}
+void Cpu::Inst0xfb() {
+	// EI
+	interuptsEnabled = true;
+}
+void Cpu::Inst0xfc() {
+	INVALID_OP;
+}
+void Cpu::Inst0xfd() {
+	INVALID_OP;
+}
+void Cpu::Inst0xfe() {
+	// CP A, d8
+	Cp(A, PopPC());
+}
+void Cpu::Inst0xff() {
+	// RST 0x38
+	Call(0x0038);
+}
 
-Cpu::InstructionPtr Cpu::s_instructions[0xff] = {
+Cpu::InstructionPtr Cpu::s_instructions[0x100] = {
 	&Cpu::Inst0x00, &Cpu::Inst0x01, &Cpu::Inst0x02, &Cpu::Inst0x03, &Cpu::Inst0x04, &Cpu::Inst0x05, &Cpu::Inst0x06, &Cpu::Inst0x07, &Cpu::Inst0x08,
 	&Cpu::Inst0x09, &Cpu::Inst0x0a, &Cpu::Inst0x0b, &Cpu::Inst0x0c, &Cpu::Inst0x0d, &Cpu::Inst0x0e, &Cpu::Inst0x0f, &Cpu::Inst0x10, &Cpu::Inst0x11,
 	&Cpu::Inst0x12, &Cpu::Inst0x13, &Cpu::Inst0x14, &Cpu::Inst0x15, &Cpu::Inst0x16, &Cpu::Inst0x17, &Cpu::Inst0x18, &Cpu::Inst0x19, &Cpu::Inst0x1a,

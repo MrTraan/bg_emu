@@ -10,6 +10,8 @@ typedef short int16;
 #define BIT_IS_SET(x, n) (((x >> n) & 1) == 1)
 #define BIT_SET(x, n) (x | (1 << n))
 #define BIT_UNSET(x, n) (x & ~(1 << n))
+#define BIT_HIGH_8(x) ((byte)((x & 0xFF00) >> 8))
+#define BIT_LOW_8(x) ((byte)(x & 0xFF))
 
 #define GBEMU_UNSUPPORTED_PLATFORM static_assert(false, "Platform specific not handled here");
 
