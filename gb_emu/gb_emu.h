@@ -15,7 +15,7 @@ typedef short int16;
 
 
 // define the debug break by platform
-#if defined( _WINDOWS )
+#if defined( _WIN32 )
 #define DEBUG_BREAK __debugbreak()
 #elif defined( __linux )
 #define DEBUG_BREAK __asm__ __volatile__ ("int $0x03")
