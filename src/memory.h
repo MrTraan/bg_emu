@@ -3,6 +3,8 @@
 #include "gb_emu.h"
 
 struct Memory {
+	Memory();
+
 	// Reference to cartridge?
 
 	byte highRAM[0x100];
@@ -15,9 +17,8 @@ struct Memory {
 
 	byte OAM[0x100];
 
-	// Initial values of memory
-	Memory();
-
 	void Write(uint16 addr, byte value);
 	byte Read(uint16 addr);
+	void WriteHighRam(uint16 addr, byte value);
+	byte ReadHighRam(uint16 addr);
 };

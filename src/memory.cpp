@@ -22,40 +22,10 @@ static byte BIOS[0x100] = {
 	0xF5, 0x06, 0x19, 0x78, 0x86, 0x23, 0x05, 0x20, 0xFB, 0x86, 0x20, 0xFE, 0x3E, 0x01, 0xE0, 0x50 };
 
 Memory::Memory() {
-	highRAM[0x04] = 0x1E;
-	highRAM[0x05] = 0x00;
-	highRAM[0x06] = 0x00;
-	highRAM[0x07] = 0xF8;
-	highRAM[0x0F] = 0xE1;
-	highRAM[0x10] = 0x80;
-	highRAM[0x11] = 0xBF;
-	highRAM[0x12] = 0xF3;
-	highRAM[0x14] = 0xBF;
-	highRAM[0x16] = 0x3F;
-	highRAM[0x17] = 0x00;
-	highRAM[0x19] = 0xBF;
-	highRAM[0x1A] = 0x7F;
-	highRAM[0x1B] = 0xFF;
-	highRAM[0x1C] = 0x9F;
-	highRAM[0x1E] = 0xBF;
-	highRAM[0x20] = 0xFF;
-	highRAM[0x21] = 0x00;
-	highRAM[0x22] = 0x00;
-	highRAM[0x23] = 0xBF;
-	highRAM[0x24] = 0x77;
-	highRAM[0x25] = 0xF3;
-	highRAM[0x26] = 0xF1;
-	highRAM[0x40] = 0x91;
-	highRAM[0x41] = 0x85;
-	highRAM[0x42] = 0x00;
-	highRAM[0x43] = 0x00;
-	highRAM[0x45] = 0x00;
-	highRAM[0x47] = 0xFC;
-	highRAM[0x48] = 0xFF;
-	highRAM[0x49] = 0xFF;
-	highRAM[0x4A] = 0x00;
-	highRAM[0x4B] = 0x00;
-	highRAM[0xFF] = 0x00;
+	memset(VRAM, 0, 0x4000);
+	memset(WorkRam, 0, 0x9000);
+	memset(OAM, 0, 0x100);
+	memset(highRAM, 0, 0x100);
 
 	WorkRamBankIndex = 1;
 	VRAMBankIndex = 0;
@@ -98,8 +68,7 @@ void Memory::Write(uint16 addr, byte value) {
 		DEBUG_BREAK;
 	}
 	else {
-		// high ram?
-		DEBUG_BREAK;
+		WriteHighRam(addr, value);
 	}
 }
 
@@ -138,8 +107,102 @@ byte Memory::Read(uint16 addr) {
 		DEBUG_BREAK;
 	}
 	else {
-		// high ram?
-		DEBUG_BREAK;
+		return ReadHighRam(addr);
 	}
 	return 0xFF;
+}
+
+byte Memory::ReadHighRam(uint16 addr) {
+	if (addr == 0xff00) {
+		DEBUG_BREAK; // JOYPAD
+	} else if (addr >= 0xff10 && addr <= 0xff26) {
+		DEBUG_BREAK; // READ SOUND
+	} else if (addr >= 0xff30 && addr <= 0xff3f) {
+		DEBUG_BREAK; // READ SOUND WAVE FORM
+	} else if (addr == 0xff0f) {
+		return highRAM[0x0f] | 0xe0;
+	} else if (addr > 0xff72 && addr <= 0xff77) {
+		// Unkown
+		DEBUG_BREAK;
+	} else if (addr == 0xff68) {
+		// BG palette index, only for GBC
+		DEBUG_BREAK;
+	} else if (addr == 0xff69) {
+		// BG palette data, only for GBC
+		DEBUG_BREAK;
+	} else if (addr == 0xff6a) {
+		// Sprite palette index, only for GBC
+		DEBUG_BREAK;
+	} else if (addr == 0xff6b) {
+		// Sprite palette data, only for GBC
+		DEBUG_BREAK;
+	} else if (addr == 0xff4d) {
+		// speed switch
+		DEBUG_BREAK;
+	} else if (addr == 0xff4f) {
+		return VRAMBankIndex;
+	} else if (addr == 0xff70) {
+		return WorkRamBankIndex;
+	} else {
+		return highRAM[addr - 0xff00];
+	}
+}
+
+void Memory::WriteHighRam(uint16 addr, byte value) {
+	if (addr >= 0xfa0 && addr < 0xfeff) {
+		// You can't write here, sorry!
+		return;
+	}
+	if (addr >= 0xff10 && addr < 0xff26) {
+		DEBUG_BREAK; // Writing to sound
+		return;
+	}
+	if (addr >= 0xff30 && addr <= 0xff3f) {
+		DEBUG_BREAK; // Writing to sound waveform
+		return;
+	}
+
+	byte lowPart = BIT_LOW_8(addr);
+
+	switch (lowPart) {
+	case 0x02:
+		DEBUG_BREAK; // Serial transfer control 
+		break;
+	case 0x04:
+		DEBUG_BREAK; // divider register
+		break;
+	case 0x05:
+	case 0x06:
+		// TIMA and TMA (timers)
+		highRAM[lowPart] = value;
+		break;
+	case 0x07:
+		// Starting or stopping the timer
+		DEBUG_BREAK;
+		break;
+	case 0x41:
+		highRAM[0x41] = value | 0x80;
+		break;
+	case 0x44:
+		// Scanline register
+		DEBUG_BREAK;
+		highRAM[0x44] = 0;
+		break;
+	case 0x46:
+		DEBUG_BREAK; // DMA transfer;
+		break;
+	case 0x4d:
+	case 0x4f:
+	case 0x55:
+	case 0x68:
+	case 0x69:
+	case 0x6a:
+	case 0x6b:
+	case 0x70:
+		// CGB stuff
+		DEBUG_BREAK;
+		break;
+	default:
+		highRAM[lowPart] = value;
+	}
 }

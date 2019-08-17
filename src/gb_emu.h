@@ -15,7 +15,6 @@ typedef short int16;
 
 #define GBEMU_UNSUPPORTED_PLATFORM static_assert(false, "Platform specific not handled here");
 
-
 // define the debug break by platform
 #if defined( _WIN32 )
 #define DEBUG_BREAK __debugbreak()
@@ -27,3 +26,6 @@ typedef short int16;
 #else
 GBEMU_UNSUPPORTED_PLATFORM
 #endif
+
+// GameBoy has a 4.19 MHz CPU
+#define GBEMU_CLOCK_SPEED 4194304
