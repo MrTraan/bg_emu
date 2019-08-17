@@ -1,4 +1,5 @@
 #include "cpu.h"
+#include "cb_opcodes.h"
 #include "memory.h"
 
 #define INVALID_OP DEBUG_BREAK
@@ -174,11 +175,6 @@ uint16 Cpu::PopStack() {
 
 void Halt() {
 } // TODO: don't know what to do yet with that
-
-int Cpu::ExecuteCBOPCode(uint16 opcode, byte arg) {
-	DEBUG_BREAK; // TODO
-	return 0;
-}
 
 // Return Cycles used
 int Cpu::ExecuteNextOPCode() {
@@ -364,8 +360,9 @@ void Cpu::Inst0x1f() {
 }
 void Cpu::Inst0x20() {
 	// JR NZ, r8
+	int8 jump = (int8)PopPC();
 	if (!GetZ()) {
-		uint16 addr = PC + PopPC();
+		uint16 addr = PC + jump;
 		PC = addr;
 		additionnalTicks += 4;
 	}
@@ -430,8 +427,9 @@ void Cpu::Inst0x27() {
 }
 void Cpu::Inst0x28() {
 	// JR Z, r8
+	int8 jump = (int8)PopPC();
 	if (GetZ()) {
-		uint16 addr = PC + PopPC();
+		uint16 addr = PC + jump;
 		PC = addr;
 		additionnalTicks += 4;
 	}
@@ -469,8 +467,9 @@ void Cpu::Inst0x2f() {
 }
 void Cpu::Inst0x30() {
 	// JR NC, r8
+	int8 jump = (int8)PopPC();
 	if (!GetC()) {
-		uint16 addr = PC + PopPC();
+		uint16 addr = PC + jump;
 		PC = addr;
 		additionnalTicks += 4;
 	}
@@ -518,8 +517,9 @@ void Cpu::Inst0x37() {
 }
 void Cpu::Inst0x38() {
 	// JR C, r8
+	int8 jump = (int8)PopPC();
 	if (GetC()) {
-		uint16 addr = PC + PopPC();
+		uint16 addr = PC + jump;
 		PC = addr;
 		additionnalTicks += 4;
 	}
@@ -1080,8 +1080,9 @@ void Cpu::Inst0xc1() {
 }
 void Cpu::Inst0xc2() {
 	// JP NZ, a16
+	uint16 jump = PopPC16();
 	if (!GetZ()) {
-		PC = PopPC16();
+		PC = jump;
 		additionnalTicks += 4;
 	}
 }
@@ -1091,8 +1092,9 @@ void Cpu::Inst0xc3() {
 }
 void Cpu::Inst0xc4() {
 	// CALL NZ
+	uint16 jump = PopPC16();
 	if (!GetZ()) {
-		Call(PopPC16());
+		Call(jump);
 		additionnalTicks += 12;
 	}
 }
@@ -1121,19 +1123,21 @@ void Cpu::Inst0xc9() {
 }
 void Cpu::Inst0xca() {
 	// JP Z, a16
+	uint16 jump = PopPC16();
 	if (GetZ()) {
-		PC = PopPC16();
+		PC = jump;
 		additionnalTicks += 4;
 	}
 }
 void Cpu::Inst0xcb() {
 	// PREFIX CB
-	additionnalTicks += ExecuteCBOPCode(PopPC(), PopPC());
+	additionnalTicks += ExecuteCBOPCode(this, PopPC());
 }
 void Cpu::Inst0xcc() {
 	// CALL Z
+	uint16 jump = PopPC16();
 	if (GetZ()) {
-		Call(PopPC16());
+		Call(jump);
 		additionnalTicks += 12;
 	}
 }
@@ -1162,8 +1166,9 @@ void Cpu::Inst0xd1() {
 }
 void Cpu::Inst0xd2() {
 	// JP NC, a16
+	uint16 jump = PopPC16();
 	if (!GetC()) {
-		PC = PopPC16();
+		PC = jump;
 		additionnalTicks += 4;
 	}
 }
@@ -1172,8 +1177,9 @@ void Cpu::Inst0xd3() {
 }
 void Cpu::Inst0xd4() {
 	// CALL NC
+	uint16 jump = PopPC16();
 	if (!GetC()) {
-		Call(PopPC16());
+		Call(jump);
 		additionnalTicks += 12;
 	}
 }
@@ -1203,8 +1209,9 @@ void Cpu::Inst0xd9() {
 }
 void Cpu::Inst0xda() {
 	// JP C, a16
+	uint16 jump = PopPC16();
 	if (GetC()) {
-		PC = PopPC16();
+		PC = jump;
 		additionnalTicks += 4;
 	}
 }
@@ -1213,8 +1220,9 @@ void Cpu::Inst0xdb() {
 }
 void Cpu::Inst0xdc() {
 	// CALL C
+	uint16 jump = PopPC16();
 	if (GetC()) {
-		Call(PopPC16());
+		Call(jump);
 		additionnalTicks += 12;
 	}
 }

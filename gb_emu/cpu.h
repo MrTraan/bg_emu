@@ -62,7 +62,7 @@ struct Cpu {
 
 	// Initialize CPU with default values
 	Cpu(Memory* _mem) : mem(_mem) {
-		PC = 0x100;
+		PC = 0x0;
 		AF.Set(0x01B0);
 		BC.Set(0);
 		DE.Set(0xFF56);
@@ -73,7 +73,6 @@ struct Cpu {
 	}
 
 	int	   ExecuteNextOPCode();
-	int    ExecuteCBOPCode(uint16 opcode, byte arg);
 	byte   PopPC();
 	uint16 PopPC16();
 	void   PushStack(uint16 val);
@@ -97,10 +96,10 @@ struct Cpu {
 
 	void SetFlag(uint8 index, bool val) {
 		if (val == true) {
-			A.Set(BIT_SET(F.Get(), index));
+			F.Set(BIT_SET(F.Get(), index));
 		}
 		else {
-			A.Set(BIT_UNSET(F.Get(), index));
+			F.Set(BIT_UNSET(F.Get(), index));
 		}
 	}
 
