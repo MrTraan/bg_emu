@@ -31,7 +31,7 @@ void Cpu::Add(Register8& reg, byte val, bool useCarry) {
 	int16 total = valReg + val + carry;
 	reg.Set((byte)total);
 
-	SetZ(total == 0);
+	SetZ((byte)total == 0);
 	SetN(false);
 	SetH((val & 0xF) + (valReg & 0xF) + carry > 0xF);
 	SetC(total > 0xFF);
@@ -1443,7 +1443,7 @@ Cpu::InstructionPtr Cpu::s_instructions[0x100] = {
 	&Cpu::Inst0xe1, &Cpu::Inst0xe2, &Cpu::Inst0xe3, &Cpu::Inst0xe4, &Cpu::Inst0xe5, &Cpu::Inst0xe6, &Cpu::Inst0xe7, &Cpu::Inst0xe8, &Cpu::Inst0xe9,
 	&Cpu::Inst0xea, &Cpu::Inst0xeb, &Cpu::Inst0xec, &Cpu::Inst0xed, &Cpu::Inst0xee, &Cpu::Inst0xef, &Cpu::Inst0xf0, &Cpu::Inst0xf1, &Cpu::Inst0xf2,
 	&Cpu::Inst0xf3, &Cpu::Inst0xf4, &Cpu::Inst0xf5, &Cpu::Inst0xf6, &Cpu::Inst0xf7, &Cpu::Inst0xf8, &Cpu::Inst0xf9, &Cpu::Inst0xfa, &Cpu::Inst0xfb,
-	&Cpu::Inst0xfc, &Cpu::Inst0xfd, &Cpu::Inst0xfe
+	&Cpu::Inst0xfc, &Cpu::Inst0xfd, &Cpu::Inst0xfe, &Cpu::Inst0xff
 };
 
 const char* Cpu::s_instructionsNames[0x100] = {
