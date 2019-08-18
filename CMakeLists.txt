@@ -34,6 +34,8 @@ add_executable (gb_emu
 "./src/memory.cpp"
 "./src/cb_opcodes.h"
 "./src/cb_opcodes.cpp"
+"./src/rom.h"
+"./src/rom.cpp"
 "./src/gui/window.h"
 "./src/gui/keyboard.h"
 "./src/gui/keyboard.cpp"

@@ -1,12 +1,13 @@
 #pragma once
 
 #include "gb_emu.h"
+#include "rom.h"
 
 struct Memory {
-	Memory();
+	Memory(Cartridge * _cart);
 
-	// Reference to cartridge?
 
+	Cartridge * cart;
 	byte highRAM[0x100];
 	byte VRAM[0x4000];
 	byte VRAMBankIndex;

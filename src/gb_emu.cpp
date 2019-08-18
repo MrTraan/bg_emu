@@ -11,6 +11,7 @@
 #include "gb_emu.h"
 #include "cpu.h"
 #include "memory.h"
+#include "rom.h"
 #include "gui/window.h"
 #include "gui/keyboard.h"
 #include "gui/screen_buffer.h"
@@ -35,9 +36,20 @@ MessageCallback(GLenum source,
 
 static MemoryEditor mem_edit;
 
-int main()
+int main(int argc, char **argv)
 {
-	Memory * mem = new Memory();
+	const char * romPath;
+	if (argc == 2) {
+		romPath = argv[1];
+	} else {
+        romPath = "C:\\Users\\natha\\source\\repos\\gb_emu\\roms\\Tetris.gb";
+	}
+	Cartridge * cart = Cartridge::LoadFromFile(romPath);
+	if (cart == nullptr) {
+		return 1;
+	}
+
+	Memory * mem = new Memory(cart);
 	Cpu cpu(mem);
 	Window window;
 	Ppu * ppu = new Ppu(mem, &cpu);
@@ -168,6 +180,17 @@ void DrawDebugWindow(Cpu& cpu, Memory& mem) {
 	ImGui::Separator();
 	ImGui::Text("0x%04x", cpu.PC); ImGui::NextColumn();
 	ImGui::Text("0x%04x", cpu.SP.Get()); ImGui::NextColumn();
+	ImGui::Columns(4, "flags");
+	ImGui::Separator();
+	ImGui::Text("Z"); ImGui::NextColumn();
+	ImGui::Text("N"); ImGui::NextColumn();
+	ImGui::Text("H"); ImGui::NextColumn();
+	ImGui::Text("C"); ImGui::NextColumn();
+	ImGui::Separator();
+	ImGui::Text("%d", cpu.GetZ()); ImGui::NextColumn();
+	ImGui::Text("%d", cpu.GetN()); ImGui::NextColumn();
+	ImGui::Text("%d", cpu.GetH()); ImGui::NextColumn();
+	ImGui::Text("%d", cpu.GetC()); ImGui::NextColumn();
 
 	ImGui::Columns(1);
 	ImGui::Separator();
@@ -176,4 +199,5 @@ void DrawDebugWindow(Cpu& cpu, Memory& mem) {
 	mem_edit.DrawWindow("VRAM", mem.VRAM, 0x4000, 0x0);
 	mem_edit.DrawWindow("HighRAM", mem.highRAM, 0x100, 0x0);
 	mem_edit.DrawWindow("OAM", mem.OAM, 0xa0, 0x0);
+	mem_edit.DrawWindow("ROM", mem.cart->GetRawMemory(), mem.cart->GetRawMemorySize(), 0x0);
 }

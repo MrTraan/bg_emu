@@ -22,7 +22,7 @@ static byte BIOS[0x100] = {
 	0x21, 0x04, 0x01, 0x11, 0xA8, 0x00, 0x1A, 0x13, 0xBE, 0x20, 0xFE, 0x23, 0x7D, 0xFE, 0x34, 0x20,
 	0xF5, 0x06, 0x19, 0x78, 0x86, 0x23, 0x05, 0x20, 0xFB, 0x86, 0x20, 0xFE, 0x3E, 0x01, 0xE0, 0x50 };
 
-Memory::Memory() {
+Memory::Memory(Cartridge * _cart) : cart(_cart) {
 	memset(VRAM, 0, 0x4000);
 	memset(WorkRam, 0, 0x9000);
 	memset(OAM, 0, 0xa0);
@@ -38,8 +38,11 @@ Memory::Memory() {
 }
 
 void Memory::Write(uint16 addr, byte value) {
-	if (addr < 0x8000) {
-		basicROM[addr] = value;
+	if (addr < 0x100) {
+		return;
+	}
+	else if (addr < 0x8000) {
+		cart->Write(addr, value);
 	}
 	else if (addr < 0xA000) {
 		// VRAM banking
@@ -75,6 +78,9 @@ void Memory::Write(uint16 addr, byte value) {
 }
 
 byte Memory::Read(uint16 addr) {
+	if (addr < 0x100) {
+		return BIOS[addr]; // TODO : Should that always be here?
+	}
 	switch ((addr & 0xf000) >> 12) { // Switch on 4th byte
 	case 0x0:
 	case 0x1:
@@ -84,7 +90,7 @@ byte Memory::Read(uint16 addr) {
 	case 0x5:
 	case 0x6:
 	case 0x7:
-		return basicROM[addr];
+		return cart->Read(addr);
 
 	case 0x8:
 	case 0x9: {

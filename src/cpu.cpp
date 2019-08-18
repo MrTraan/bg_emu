@@ -373,8 +373,8 @@ void Cpu::Inst0x17() {
 }
 void Cpu::Inst0x18() {
 	// JR r8
-	uint16 addr = PC + (int8)PopPC();
-	PC = addr;
+	int addr = (int8)PopPC() + (int)PC;
+	PC = (uint16)addr;
 }
 void Cpu::Inst0x19() {
 	// ADD HL, DE
