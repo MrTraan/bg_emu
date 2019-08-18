@@ -101,7 +101,7 @@ ScreenBuffer::ScreenBuffer() {
 
 	glBindVertexArray(0);
 
-	memset(textureData, 0, SCREEN_BUFFER_HEIGHT * SCREEN_BUFFER_WIDTH * sizeof(Pixel));
+	Clear();
 
 	glGenTextures(1, &textureHandler);
 	glBindTexture(GL_TEXTURE_2D, textureHandler);
@@ -111,7 +111,7 @@ ScreenBuffer::ScreenBuffer() {
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, SCREEN_BUFFER_WIDTH , SCREEN_BUFFER_HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, textureData);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, GB_SCREEN_WIDTH , GB_SCREEN_HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, textureData);
 	glGenerateMipmap(GL_TEXTURE_2D);
 }
 
@@ -122,6 +122,7 @@ ScreenBuffer::~ScreenBuffer() {
 
 void ScreenBuffer::Draw() {
 	glBindTexture(GL_TEXTURE_2D, textureHandler);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, GB_SCREEN_WIDTH , GB_SCREEN_HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, textureData);
 	glUseProgram(shaderProgram);
 	glBindVertexArray(VAO);
 	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);

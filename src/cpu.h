@@ -35,6 +35,7 @@ struct Cpu {
 	typedef void (Cpu::* InstructionPtr)(void);
 	static InstructionPtr s_instructions[0x100];
 	static const char * s_instructionsNames[0x100];
+	const char * lastInstructionName = nullptr;
 
 	Register16	AF;
 	Register16  BC;
@@ -55,9 +56,13 @@ struct Cpu {
 	Memory* mem;
 
 	int additionnalTicks = 0;
+	
+	int speed = 1; // Will be useful later for GBC
 
 	bool interuptsEnabled = true;
 	bool interuptsOn = true;
+
+	bool IsCGB() { return false; }
 
 	// int divider
 
@@ -89,6 +94,7 @@ struct Cpu {
 	void Dec(Register8& reg);
 	void Call(uint16 addr);
 	void Ret();
+	void RaiseInterupt(int code) {} // TODO : I don't know yet how to handle interupts!
 
 	void Add16(Register16& reg, uint16 val);
 	void Add16Signed(Register16& reg, int8 val);

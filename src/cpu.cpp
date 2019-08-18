@@ -185,7 +185,8 @@ int Cpu::ExecuteNextOPCode() {
 	byte opcode = PopPC();
 	int  ticksUsed = opcodeCyclesCost[opcode] * 4;
 	additionnalTicks = 0;
-	printf("%s\n", s_instructionsNames[opcode]);
+	lastInstructionName = s_instructionsNames[opcode];
+	//printf("%s\n", s_instructionsNames[opcode]);
 
 	InstructionPtr op = s_instructions[opcode];
 	if (op == nullptr) {
@@ -323,7 +324,7 @@ void Cpu::Inst0x17() {
 }
 void Cpu::Inst0x18() {
 	// JR r8
-	uint16 addr = PC + PopPC();
+	uint16 addr = PC + (int8)PopPC();
 	PC = addr;
 }
 void Cpu::Inst0x19() {

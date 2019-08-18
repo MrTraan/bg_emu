@@ -17,8 +17,16 @@ struct Memory {
 
 	byte OAM[0x100];
 
+	bool hdmaActive = true;
+	byte hdmaLength = 0;
+
 	void Write(uint16 addr, byte value);
 	byte Read(uint16 addr);
 	void WriteHighRam(uint16 addr, byte value);
 	byte ReadHighRam(uint16 addr);
+
+	void HDMATransfer();
+	void DMATransfer(byte value);
+	void HDMATransfer_CBC() { DEBUG_BREAK; }
+	void DMATransfer_GBC() { DEBUG_BREAK; }
 };

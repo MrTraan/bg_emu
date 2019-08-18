@@ -1,8 +1,6 @@
 #pragma once
+#include <string.h>
 #include "../gb_emu.h"
-
-constexpr int SCREEN_BUFFER_HEIGHT = 144;
-constexpr int SCREEN_BUFFER_WIDTH = 160;
 
 struct Pixel {
 	byte R;
@@ -16,10 +14,13 @@ struct ScreenBuffer {
 	unsigned int EBO;
 	unsigned int textureHandler;
 
-	Pixel textureData[SCREEN_BUFFER_HEIGHT][SCREEN_BUFFER_WIDTH];
+	Pixel textureData[GB_SCREEN_HEIGHT][GB_SCREEN_WIDTH];
 
 	void SetPixel(int x, int y, Pixel & pixel) {
 		textureData[y][x] = pixel;
+	}
+	void Clear() {
+		memset(textureData, 0, sizeof(textureData));
 	}
 
 	int vertexShader;

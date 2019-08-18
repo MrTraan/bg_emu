@@ -4,10 +4,11 @@
 #include <stdexcept>
 #include "keyboard.h"
 #include "screen_buffer.h"
+#include "../ppu.h"
 
 constexpr char WINDOW_TITLE[] = "bg_emu";
-constexpr int WINDOW_WIDTH = SCREEN_BUFFER_WIDTH * 8;
-constexpr int WINDOW_HEIGHT = SCREEN_BUFFER_HEIGHT * 8;
+constexpr int WINDOW_WIDTH = GB_SCREEN_WIDTH * 8;
+constexpr int WINDOW_HEIGHT = GB_SCREEN_HEIGHT * 8;
 
 static void framebufferSizeCallback(GLFWwindow* window, int width, int height) {
 	glViewport(0, 0, width, height);

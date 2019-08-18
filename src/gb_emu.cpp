@@ -37,7 +37,7 @@ int main()
 	Memory * mem = new Memory();
 	Cpu cpu(mem);
 	Window window;
-	ScreenBuffer screenBuffer;
+	Ppu * ppu = new Ppu(mem, &cpu);
 
 	// Setup imgui
 	ImGui::CreateContext();
@@ -66,6 +66,9 @@ int main()
 
 	bool show_demo_window = true;
 
+	unsigned long PCBreakpoint = 0x0;
+
+	bool shouldRun = false; 
 	while (!window.ShouldClose()) {
 		double startTime = glfwGetTime();
 
@@ -75,17 +78,37 @@ int main()
 		ImGui_ImplOpenGL3_NewFrame();
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
+
+		if (show_demo_window) {
+			ImGui::ShowDemoWindow(&show_demo_window);
+		}
 		
-		screenBuffer.Draw();
+		ppu->frontBuffer->Draw();
 
 		DrawDebugWindow(cpu, *mem);
-		//int totalClocksThisFrame = 0;
-		//while (totalClocksThisFrame < GBEMU_CLOCK_SPEED / 60) {
-		//	totalClocksThisFrame += cpu.ExecuteNextOPCode();
-		//}
-		if (Keyboard::IsKeyPressed(eKey::KEY_SPACE)) {
-			cpu.ExecuteNextOPCode();
+
+		static char buf[64] = "";
+		ImGui::InputText("Break at PC: ", buf, 64, ImGuiInputTextFlags_CharsHexadecimal | ImGuiInputTextFlags_CharsUppercase);
+		PCBreakpoint = strtoul(buf, nullptr, 16);
+        if (ImGui::Button("Run")) {
+			shouldRun = !shouldRun;
 		}
+		bool shouldStep = false;
+        if (ImGui::Button("Step")) {
+			shouldStep = true;;
+		}
+
+		int totalClocksThisFrame = 0;
+		while (totalClocksThisFrame < GBEMU_CLOCK_SPEED / 60 && (shouldRun || shouldStep)) {
+			int clocks = cpu.ExecuteNextOPCode();
+			totalClocksThisFrame += clocks;
+			ppu->Update(clocks);
+			if (PCBreakpoint == cpu.PC) {
+				shouldRun = false;
+			}
+			shouldStep = false;
+		}
+            
 
 		ImGui::Render();
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -98,6 +121,7 @@ int main()
 	ImGui::DestroyContext();
 
 	delete mem;
+	delete ppu;
 	return 0;
 }
 
@@ -143,4 +167,5 @@ void DrawDebugWindow(Cpu& cpu, Memory& mem) {
 
 	ImGui::Columns(1);
 	ImGui::Separator();
+	ImGui::Text("Last instruction: %s", cpu.lastInstructionName);
 }
