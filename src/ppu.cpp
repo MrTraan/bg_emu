@@ -50,30 +50,27 @@ void Ppu::Update(int cycles) {
 		status = BIT_SET(status, 0);
 		status = BIT_UNSET(status, 1);
 		requestInterupt = BIT_IS_SET(status, 4);
-	} else {
-		if (scanlineCounter >= lcdMode2Bounds) {
-			if (currentLine != lastDrawnScanLine) {
-				DrawScanLine(lastDrawnScanLine);
-				lastDrawnScanLine = currentLine;
-			}
-			nextMode = 2;
-			status = BIT_UNSET(status, 0);
-			status = BIT_SET(status, 1);
-			requestInterupt = BIT_IS_SET(status, 5);
+	} else if (scanlineCounter >= lcdMode2Bounds) {
+		nextMode = 2;
+		status = BIT_UNSET(status, 0);
+		status = BIT_SET(status, 1);
+		requestInterupt = BIT_IS_SET(status, 5);
+	}
+	else if (scanlineCounter >= lcdMode3Bounds) {
+		nextMode = 3;
+		status = BIT_SET(status, 0);
+		status = BIT_SET(status, 1);
+		if (nextMode != currentMode) {
+			DrawScanLine(currentLine);
 		}
-		else if (scanlineCounter >= lcdMode3Bounds) {
-			nextMode = 3;
-			status = BIT_SET(status, 0);
-			status = BIT_SET(status, 1);
-		}
-		else {
-			nextMode = 0;
-			status = BIT_UNSET(status, 0);
-			status = BIT_UNSET(status, 1);
-			requestInterupt = BIT_IS_SET(status, 3);
-			if (nextMode != currentMode) {
-				mem->HDMATransfer();
-			}
+	}
+	else {
+		nextMode = 0;
+		status = BIT_UNSET(status, 0);
+		status = BIT_UNSET(status, 1);
+		requestInterupt = BIT_IS_SET(status, 3);
+		if (nextMode != currentMode) {
+			mem->HDMATransfer();
 		}
 	}
 
@@ -98,11 +95,12 @@ void Ppu::Update(int cycles) {
 	scanlineCounter -= cycles;
 
 	if (scanlineCounter <= 0) {
-		mem->Write(0xff44, mem->Read(0xff44) + 1);
-		byte currentLine = mem->Read(0xff44);
+		byte currentLine = mem->Read(0xff44) + 1;
+		mem->Write(0xff44, currentLine);
 		if (currentLine > 153) {
 			SwapBuffers();
 			mem->Write(0xff44, 0);
+			currentLine = 0;
 		}
 
 		scanlineCounter += 456 * cpu->speed;
@@ -160,7 +158,7 @@ void Ppu::DrawTiles(int scanline, byte control) {
 		usingUnsigned = true;
 	}
 	if (BIT_IS_SET(control, 5)) {
-		if (mem->Read(0xff44) > windowY) {
+		if (mem->Read(0xff44) >= windowY) {
 			usingWindow = true; // Is current scanline inside the window?
 		}
 	}
@@ -170,7 +168,7 @@ void Ppu::DrawTiles(int scanline, byte control) {
 	}
 
 	byte yPos = usingWindow ? scanline - windowY : scanline + scrollY;
-	byte tileRow = yPos / 8 * 32;
+	uint16 tileRow = (uint16)(yPos / 8) * 32;
 	byte palette = mem->Read(0xff47);
 
 	byte tileScanLine[GB_SCREEN_WIDTH];
@@ -183,8 +181,8 @@ void Ppu::DrawTiles(int scanline, byte control) {
 
 		uint16 tileLocation;
 		if (usingUnsigned) {
-			uint16 tileIndex = (uint16)(mem->VRAM[tileAddr - 0x8000]); // @HARDCODED this should use mem->Read()
-			tileLocation = tileData + (tileIndex * 16);
+			int16 tileIndex = (int16)(mem->VRAM[tileAddr - 0x8000]); // @HARDCODED this should use mem->Read()
+			tileLocation = tileData + (uint16)(tileIndex * 16);
 		}
 		else {
 			int16 tileIndex = (int8)(mem->VRAM[tileAddr - 0x8000]); // @HARDCODED this should use mem->Read()
@@ -214,12 +212,13 @@ void Ppu::DrawTiles(int scanline, byte control) {
 		if (cpu->IsCGB() && hflip) {
 			xPos = 7 - xPos;
 		}
-		byte colorBit = (byte)((int8)((xPos % 8) - 7) * -1);
+		byte colorBit = (byte)(((int8)(xPos % 8) - 7) * -1);
 		byte colorIndex = (BIT_VALUE(tileData2, colorBit) << 1) | BIT_VALUE(tileData1, colorBit);
 		// Draw if sprite has priority of if no pixel has been drawn there
 		if (priority || tileScanLine[x] == 0) {
 			PutPixel(x, scanline, tileAttr, colorIndex, palette);
 		}
+		tileScanLine[x] = colorIndex;
 	}
 }
 
@@ -286,7 +285,7 @@ void Ppu::DrawSprites(int scanline, byte control) {
 			if (cpu->IsCGB()) {
 				DEBUG_BREAK;
 			} else {
-				PutPixel(pixel, (byte)scanline, spriteAttr, colorIndex, BIT_IS_SET(spriteAttr, 4) ? palette2 : palette1);
+				PutPixel((byte)pixel, (byte)scanline, spriteAttr, colorIndex, BIT_IS_SET(spriteAttr, 4) ? palette2 : palette1);
 			}
 		}
 	}

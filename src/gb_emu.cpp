@@ -6,6 +6,7 @@
 #include <imgui/imgui.h>
 #include <imgui/imgui_impl_glfw.h>
 #include <imgui/imgui_impl_opengl3.h>
+#include <imgui/imgui_memory_editor.h>
 
 #include "gb_emu.h"
 #include "cpu.h"
@@ -31,6 +32,8 @@ MessageCallback(GLenum source,
 		(type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : ""),
 		type, severity, message);
 }
+
+static MemoryEditor mem_edit;
 
 int main()
 {
@@ -79,9 +82,9 @@ int main()
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
 
-		if (show_demo_window) {
-			ImGui::ShowDemoWindow(&show_demo_window);
-		}
+		//if (show_demo_window) {
+		//	ImGui::ShowDemoWindow(&show_demo_window);
+		//}
 		
 		ppu->frontBuffer->Draw();
 
@@ -90,7 +93,7 @@ int main()
 		static char buf[64] = "";
 		ImGui::InputText("Break at PC: ", buf, 64, ImGuiInputTextFlags_CharsHexadecimal | ImGuiInputTextFlags_CharsUppercase);
 		PCBreakpoint = strtoul(buf, nullptr, 16);
-        if (ImGui::Button("Run")) {
+        if (ImGui::Button(shouldRun ? "Pause" : "Run")) {
 			shouldRun = !shouldRun;
 		}
 		bool shouldStep = false;
@@ -103,6 +106,7 @@ int main()
 			int clocks = cpu.ExecuteNextOPCode();
 			totalClocksThisFrame += clocks;
 			ppu->Update(clocks);
+			totalClocksThisFrame += cpu.ProcessInterupts();
 			if (PCBreakpoint == cpu.PC) {
 				shouldRun = false;
 			}
@@ -168,4 +172,8 @@ void DrawDebugWindow(Cpu& cpu, Memory& mem) {
 	ImGui::Columns(1);
 	ImGui::Separator();
 	ImGui::Text("Last instruction: %s", cpu.lastInstructionName);
+
+	mem_edit.DrawWindow("VRAM", mem.VRAM, 0x4000, 0x0);
+	mem_edit.DrawWindow("HighRAM", mem.highRAM, 0x100, 0x0);
+	mem_edit.DrawWindow("OAM", mem.OAM, 0xa0, 0x0);
 }

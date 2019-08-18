@@ -25,7 +25,7 @@ static byte BIOS[0x100] = {
 Memory::Memory() {
 	memset(VRAM, 0, 0x4000);
 	memset(WorkRam, 0, 0x9000);
-	memset(OAM, 0, 0x100);
+	memset(OAM, 0, 0xa0);
 	memset(highRAM, 0, 0x100);
 
 	WorkRamBankIndex = 1;
@@ -33,40 +33,8 @@ Memory::Memory() {
 
 	memcpy(basicROM, BIOS, 0x100);
 
-	highRAM[0x04] = 0x1E;
-	highRAM[0x05] = 0x00;
-	highRAM[0x06] = 0x00;
-	highRAM[0x07] = 0xF8;
-	highRAM[0x0F] = 0xE1;
-	highRAM[0x10] = 0x80;
-	highRAM[0x11] = 0xBF;
-	highRAM[0x12] = 0xF3;
-	highRAM[0x14] = 0xBF;
-	highRAM[0x16] = 0x3F;
-	highRAM[0x17] = 0x00;
-	highRAM[0x19] = 0xBF;
-	highRAM[0x1A] = 0x7F;
-	highRAM[0x1B] = 0xFF;
-	highRAM[0x1C] = 0x9F;
-	highRAM[0x1E] = 0xBF;
-	highRAM[0x20] = 0xFF;
-	highRAM[0x21] = 0x00;
-	highRAM[0x22] = 0x00;
-	highRAM[0x23] = 0xBF;
-	highRAM[0x24] = 0x77;
-	highRAM[0x25] = 0xF3;
-	highRAM[0x26] = 0xF1;
-	highRAM[0x40] = 0x91;
-	highRAM[0x41] = 0x85;
-	highRAM[0x42] = 0x00;
-	highRAM[0x43] = 0x00;
-	highRAM[0x45] = 0x00;
-	highRAM[0x47] = 0xFC;
-	highRAM[0x48] = 0xFF;
-	highRAM[0x49] = 0xFF;
-	highRAM[0x4A] = 0x00;
-	highRAM[0x4B] = 0x00;
-	highRAM[0xFF] = 0x00;
+	highRAM[0x0f] = 0;
+
 }
 
 void Memory::Write(uint16 addr, byte value) {
@@ -107,40 +75,54 @@ void Memory::Write(uint16 addr, byte value) {
 }
 
 byte Memory::Read(uint16 addr) {
-	if (addr < 0x8000) {
-		// Reading the ROM
+	switch ((addr & 0xf000) >> 12) { // Switch on 4th byte
+	case 0x0:
+	case 0x1:
+	case 0x2:
+	case 0x3:
+	case 0x4:
+	case 0x5:
+	case 0x6:
+	case 0x7:
 		return basicROM[addr];
-	}
-	else if (addr < 0xA000) {
+
+	case 0x8:
+	case 0x9: {
 		// VRAM banking
 		uint16 bankOffset = VRAMBankIndex * 0x2000;
 		return VRAM[addr - 0x8000 + bankOffset];
 	}
-	else if (addr < 0xC000) {
-		return basicROMRam[addr - 0xA000];
-	}
-	else if (addr < 0xD000) {
+
+	case 0xa:
+	case 0xb:
+		// ROM RAM
+		return basicROMRam[addr - 0xa000];
+
+	case 0xc:
+	case 0xd:
 		// Work RAM, bank 0
-		return WorkRam[addr - 0xC000];
-	}
-	else if (addr < 0xE000) {
+		return WorkRam[addr - 0xc000];
+	case 0xe:
 		// Work RAM with banking
-		return WorkRam[addr - 0xC000 + (WorkRamBankIndex * 0x1000)];
+		return WorkRam[addr - 0xc000 + (WorkRamBankIndex * 0x1000)];
+	case 0xf: {
+		if (addr < 0xFE00) {
+			// ECHO RAM
+			return WorkRam[addr - 0xf000];
+		}
+		else if (addr < 0xFEA0) {
+			// Object Attribute Memory
+			return OAM[addr - 0xFE00];
+		}
+		else if (addr < 0xFF00) {
+			// Unusable memory
+			return 0;
+		}
+		else {
+			return ReadHighRam(addr);
+		}
+		
 	}
-	else if (addr < 0xFE00) {
-		// Echo RAM, don't know yet what to do with that
-		DEBUG_BREAK;
-	}
-	else if (addr < 0xFEA0) {
-		// Object Attribute Memory
-		return OAM[addr - 0xFE00];
-	}
-	else if (addr < 0xFF00) {
-		// Unusable memory
-		DEBUG_BREAK;
-	}
-	else {
-		return ReadHighRam(addr);
 	}
 	return 0xFF;
 }
@@ -252,7 +234,7 @@ void Memory::WriteHighRam(uint16 addr, byte value) {
 }
 
 void Memory::DMATransfer(byte value) {
-	uint16 addr = value << 8;
+	uint16 addr = (uint16)value << 8;
 	for (uint16 i = 0; i < 0xa0; i++) {
 		Write(0xfe00 + i, Read(addr + i));
 	}
@@ -277,7 +259,7 @@ void Memory::HDMATransfer() {
 	highRAM[0x51] = BIT_HIGH_8(source);
 	highRAM[0x52] = BIT_LOW_8(source);
 	highRAM[0x53] = BIT_HIGH_8(dest);
-	highRAM[0x54] = BIT_LOW_8(dest);
+	highRAM[0x54] = dest & 0xf0;
 
 	if (hdmaLength > 0) {
 		hdmaLength--;

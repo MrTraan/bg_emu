@@ -15,9 +15,9 @@ struct Memory {
 	byte WorkRam[0x9000];
 	byte WorkRamBankIndex;
 
-	byte OAM[0x100];
+	byte OAM[0xa0];
 
-	bool hdmaActive = true;
+	bool hdmaActive = false;
 	byte hdmaLength = 0;
 
 	void Write(uint16 addr, byte value);
@@ -27,6 +27,5 @@ struct Memory {
 
 	void HDMATransfer();
 	void DMATransfer(byte value);
-	void HDMATransfer_CBC() { DEBUG_BREAK; }
 	void DMATransfer_GBC() { DEBUG_BREAK; }
 };

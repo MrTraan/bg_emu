@@ -61,6 +61,7 @@ struct Cpu {
 
 	bool interuptsEnabled = true;
 	bool interuptsOn = true;
+	bool isOnHalt = false;
 
 	bool IsCGB() { return false; }
 
@@ -94,7 +95,9 @@ struct Cpu {
 	void Dec(Register8& reg);
 	void Call(uint16 addr);
 	void Ret();
-	void RaiseInterupt(int code) {} // TODO : I don't know yet how to handle interupts!
+	void RaiseInterupt(byte code);
+	int ProcessInterupts();
+	void Halt();
 
 	void Add16(Register16& reg, uint16 val);
 	void Add16Signed(Register16& reg, int8 val);

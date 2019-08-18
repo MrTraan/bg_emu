@@ -176,8 +176,57 @@ uint16 Cpu::PopStack() {
 	return ((uint16)b2 << 8) | b1;
 }
 
-void Halt() {
+void Cpu::Halt() {
 } // TODO: don't know what to do yet with that
+
+void Cpu::RaiseInterupt(byte code) {
+	byte mask = mem->Read(0xff0f);
+	mask = BIT_SET(mask, code);
+	mem->Write(0xff0f, mask);
+}
+
+static uint16 interruptAddresses[] = {
+	0x40, // V-Blank
+	0x48, // LCDC Status
+	0x50, // Timer Overflow
+	0x58, // Serial Transfer
+	0x60, // Hi-Lo P10-P13
+};
+
+int Cpu::ProcessInterupts() {
+	if (interuptsEnabled) {
+		interuptsOn = true;
+		interuptsEnabled = false;
+		return 0;
+	}
+	if (!interuptsOn) {
+		return 0;
+	}
+
+	byte mask = mem->Read(0xff0f);
+	byte enabledMask = mem->Read(0xffff);
+
+	if (mask != 0) {
+		for (int i = 0; i < 5; i++) {
+			if (BIT_IS_SET(mask, i) && BIT_IS_SET(enabledMask, i)) {
+				if (!interuptsOn && isOnHalt) {
+					isOnHalt = false;
+					
+				}
+				interuptsOn = false;
+				isOnHalt = false;
+				mask = BIT_UNSET(mask, i);
+				mem->Write(0xff0f, mask);
+
+				PushStack(PC);
+				PC = interruptAddresses[i];
+				return 20;
+			}
+		}
+	}
+
+	return 0;
+}
 
 // Return Cycles used
 int Cpu::ExecuteNextOPCode() {
