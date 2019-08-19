@@ -26,3 +26,23 @@ public:
 	virtual byte * GetRawMemory() { return data; }
 	virtual int GetRawMemorySize() { return 0x8000; }
 };
+
+class MBC1 : public Cartridge {
+public:
+	byte data[0x10000];
+	uint16 romBank = 1;
+	bool romBanking = false;
+
+	byte ram[0x8000];
+	uint16 ramBank = 1;
+	bool ramEnabled = false;
+	
+	virtual byte Read(uint16 addr) override;
+
+	virtual void Write(uint16 addr, byte val) override;
+	
+	virtual void WriteRAM(uint16 addr, byte val) override;
+
+	virtual byte * GetRawMemory() { return data; }
+	virtual int GetRawMemorySize() { return 0x10000; }
+};

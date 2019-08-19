@@ -42,7 +42,8 @@ int main(int argc, char **argv)
 	if (argc == 2) {
 		romPath = argv[1];
 	} else {
-        romPath = "C:\\Users\\natha\\source\\repos\\gb_emu\\roms\\Tetris.gb";
+        //romPath = "../../../roms/cpu_instrs.gb";
+        romPath = "../../../roms/tetris.gb";
 	}
 	Cartridge * cart = Cartridge::LoadFromFile(romPath);
 	if (cart == nullptr) {
@@ -195,6 +196,7 @@ void DrawDebugWindow(Cpu& cpu, Memory& mem) {
 	ImGui::Columns(1);
 	ImGui::Separator();
 	ImGui::Text("Last instruction: %s", cpu.lastInstructionName);
+	ImGui::Text("Next instruction: %s", Cpu::s_instructionsNames[mem.Read(cpu.PC)]);
 
 	mem_edit.DrawWindow("VRAM", mem.VRAM, 0x4000, 0x0);
 	mem_edit.DrawWindow("HighRAM", mem.highRAM, 0x100, 0x0);

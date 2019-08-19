@@ -50,7 +50,7 @@ void Memory::Write(uint16 addr, byte value) {
 		VRAM[addr - 0x8000 + bankOffset] = value;
 	}
 	else if (addr < 0xC000) {
-		basicROMRam[addr - 0xA000] = value;
+		cart->WriteRAM(addr, value);
 	}
 	else if (addr < 0xD000) {
 		// Work RAM, bank 0
@@ -105,16 +105,16 @@ byte Memory::Read(uint16 addr) {
 		return basicROMRam[addr - 0xa000];
 
 	case 0xc:
-	case 0xd:
 		// Work RAM, bank 0
 		return WorkRam[addr - 0xc000];
-	case 0xe:
+	case 0xd:
 		// Work RAM with banking
 		return WorkRam[addr - 0xc000 + (WorkRamBankIndex * 0x1000)];
+	case 0xe:
 	case 0xf: {
 		if (addr < 0xFE00) {
 			// ECHO RAM
-			return WorkRam[addr - 0xf000];
+			return WorkRam[addr - 0xe000];
 		}
 		else if (addr < 0xFEA0) {
 			// Object Attribute Memory
@@ -232,7 +232,7 @@ void Memory::WriteHighRam(uint16 addr, byte value) {
 	case 0x6b:
 	case 0x70:
 		// CGB stuff
-		DEBUG_BREAK;
+//		DEBUG_BREAK;
 		break;
 	default:
 		highRAM[lowPart] = value;
