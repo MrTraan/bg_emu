@@ -96,9 +96,9 @@ int main(int argc, char **argv)
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
 
-		if (show_demo_window) {
-			ImGui::ShowDemoWindow(&show_demo_window);
-		}
+		//if (show_demo_window) {
+		//	ImGui::ShowDemoWindow(&show_demo_window);
+		//}
 		
 		ppu->frontBuffer->Draw();
 

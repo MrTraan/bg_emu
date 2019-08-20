@@ -75,9 +75,9 @@ void Memory::Write(uint16 addr, byte value) {
 }
 
 byte Memory::Read(uint16 addr) {
-	if (highRAM[0x50] == 0 && addr < 0x100) {
-		return BIOS[addr];
-	}
+	//if (highRAM[0x50] == 0 && addr < 0x100) {
+	//	return BIOS[addr];
+	//}
 	switch ((addr & 0xf000) >> 12) { // Switch on 4th byte
 	case 0x0:
 	case 0x1:

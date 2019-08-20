@@ -74,7 +74,7 @@ struct Cpu {
 	}
 
 	void Reset() {
-		PC = 0x0;
+		PC = 0x100;
 		AF.Set(0x01B0);
 		BC.Set(0);
 		DE.Set(0xFF56);

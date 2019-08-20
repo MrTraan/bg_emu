@@ -236,6 +236,7 @@ int Cpu::ExecuteNextOPCode() {
 	additionnalTicks = 0;
 	lastInstructionName = s_instructionsNames[opcode];
 	//printf("%s\n", s_instructionsNames[opcode]);
+	//printf("0x%02x 0x%04x\n", opcode, PC - 1);
 
 	InstructionPtr op = s_instructions[opcode];
 	if (op == nullptr) {
@@ -1326,8 +1327,8 @@ void Cpu::Inst0xe8() {
 	SetZ(false);
 }
 void Cpu::Inst0xe9() {
-	// JP (HL)
-	PC = mem->Read(HL.Get());
+	// JP HL
+	PC = HL.Get();
 }
 void Cpu::Inst0xea() {
 	// LD (a16), A
@@ -1470,7 +1471,7 @@ const char * Cpu::s_instructionsNames[ 0x100 ] = {
 	"RET Z",	   "RET",		 "JP Z, a16",   "PREFIX CB",  "CALL Z",		 "CALL a16",   "ADC A, d8",   "RST 0x08",   "RET NC",		"POP DE",
 	"JP NC, a16",  "INVALID_OP", "CALL NC",		"PUSH DE",	  "SUB A, d8",   "RST 0x10",   "RET C",		  "RETI",		"JP C, a16",	"INVALID_OP",
 	"CALL C",	   "INVALID_OP", "SBC A, d8",   "RST 0x18",   "LDH (a8), A", "POP HL",	   "LD (C), A",   "INVALID_OP", "INVALID_OP",   "PUSH HL",
-	"AND A, d8",   "RST 0x20",   "ADD SP, r8",  "JP (HL)",	  "LD (a16), A", "INVALID_OP", "INVALID_OP",  "INVALID_OP", "XOR A, d8",	"RST 0x28",
+	"AND A, d8",   "RST 0x20",   "ADD SP, r8",  "JP HL",	  "LD (a16), A", "INVALID_OP", "INVALID_OP",  "INVALID_OP", "XOR A, d8",	"RST 0x28",
 	"LDH A, (a8)", "POP AF",	 "LD A, (C)",   "DI",		  "INVALID_OP",  "PUSH AF",	   "OR A, d8",	  "RST 0x30",   "LD HL, SP+r8", "LD SP, HL",
 	"LD A, (a16)", "EI",		 "INVALID_OP",  "INVALID_OP", "CP A, d8",	 "RST 0x38",
 };
