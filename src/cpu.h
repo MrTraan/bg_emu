@@ -33,9 +33,10 @@ struct Register16 {
 
 struct Cpu {
 	typedef void (Cpu::* InstructionPtr)(void);
-	static InstructionPtr s_instructions[0x100];
-	static const char * s_instructionsNames[0x100];
-	const char * lastInstructionName = nullptr;
+	static InstructionPtr s_instructions[ 0x100 ];
+	static const char *   s_instructionsNames[ 0x100 ];
+	static byte			  s_instructionsSize[ 0x100 ];
+	const char *		  lastInstructionName = nullptr;
 
 	Register16	AF;
 	Register16  BC;
