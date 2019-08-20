@@ -17,7 +17,7 @@ struct ScreenBuffer {
 	Pixel textureData[GB_SCREEN_HEIGHT][GB_SCREEN_WIDTH];
 
 	void SetPixel(int x, int y, Pixel & pixel) {
-		textureData[GB_SCREEN_HEIGHT - y - 1][x] = pixel;
+		textureData[y][x] = pixel;
 	}
 	void Clear() {
 		memset(textureData, 0, sizeof(textureData));

@@ -124,6 +124,8 @@ int main(int argc, char **argv)
         if (ImGui::Button(showRomCode ? "Hide ROM Code" : "Show ROM Code")) {
 			showRomCode = !showRomCode;
 		}
+        
+		ImGui::Image((void*)(ppu->frontBuffer->textureHandler), ImVec2(GB_SCREEN_WIDTH, GB_SCREEN_HEIGHT), ImVec2(0,0), ImVec2(1,1), ImVec4(1.0f,1.0f,1.0f,1.0f), ImVec4(1.0f,1.0f,1.0f,0.5f));
 
 		int totalClocksThisFrame = 0;
 		while (totalClocksThisFrame < GBEMU_CLOCK_SPEED / 60 && (shouldRun || shouldStep)) {
