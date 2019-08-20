@@ -84,11 +84,11 @@ void Cpu::Xor(Register8& reg, byte val) {
 
 void Cpu::Cp(Register8& reg, byte val) {
 	byte valReg = reg.Get();
-	byte total = valReg - val;
+	byte total = val - valReg;
 	SetZ(total == 0);
 	SetN(true);
-	SetH((valReg & 0x0f) > (val & 0x0f));
-	SetC(valReg > val);
+	SetH((valReg & 0x0f) < (val & 0x0f));
+	SetC(valReg < val);
 }
 
 void Cpu::Inc(Register8& reg) {
@@ -105,8 +105,8 @@ void Cpu::Dec(Register8& reg) {
 	byte total = valReg - 1;
 	reg.Set(total);
 	SetZ(total == 0);
-	SetN(false);
-	SetH((valReg & 0x0f) > 0x0f);
+	SetN(true);
+	SetH((valReg & 0x0f) == 0x0f);
 }
 
 void Cpu::Add16(Register16& reg, uint16 val) {

@@ -42,8 +42,8 @@ int main(int argc, char **argv)
 	if (argc == 2) {
 		romPath = argv[1];
 	} else {
-        //romPath = "../../../roms/cpu_instrs.gb";
-        romPath = "../../../roms/tetris.gb";
+        romPath = "../../../roms/cpu_instrs.gb";
+        //romPath = "../../../roms/tetris.gb";
 	}
 	Cartridge * cart = Cartridge::LoadFromFile(romPath);
 	if (cart == nullptr) {
@@ -95,9 +95,9 @@ int main(int argc, char **argv)
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
 
-		//if (show_demo_window) {
-		//	ImGui::ShowDemoWindow(&show_demo_window);
-		//}
+		if (show_demo_window) {
+			ImGui::ShowDemoWindow(&show_demo_window);
+		}
 		
 		ppu->frontBuffer->Draw();
 
@@ -111,7 +111,12 @@ int main(int argc, char **argv)
 		}
 		bool shouldStep = false;
         if (ImGui::Button("Step")) {
-			shouldStep = true;;
+			shouldStep = true;
+		}
+        if (ImGui::Button("Reset")) {
+			cpu.Reset();
+			mem->Reset();
+			ppu->Reset();
 		}
 
 		int totalClocksThisFrame = 0;

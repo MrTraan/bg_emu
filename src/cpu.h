@@ -69,13 +69,16 @@ struct Cpu {
 
 	// Initialize CPU with default values
 	Cpu(Memory* _mem) : mem(_mem) {
+		Reset();
+	}
+
+	void Reset() {
 		PC = 0x0;
 		AF.Set(0x01B0);
 		BC.Set(0);
 		DE.Set(0xFF56);
 		HL.Set(0x000D);
 		SP.Set(0xFFFE);
-
 		F.mask = 0xF0;
 	}
 
