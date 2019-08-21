@@ -43,16 +43,16 @@ void Cpu::Sub(Register8& reg, byte val, bool useCarry) {
 	int16 total = valReg - val - carry;
 	reg.Set((byte)total);
 
-	SetZ(total == 0);
+	SetZ((byte)total == 0);
 	SetN(true);
-	SetH((int16)(val & 0xF) - (valReg & 0xF) - carry < 0);
+	SetH((int16)(valReg & 0xF) - (val & 0xF) - carry < 0);
 	SetC(total < 0);
 }
 
 void Cpu::And(Register8& reg, byte val) {
 	byte valReg = reg.Get();
 	byte total = valReg & val;
-	reg.Set((byte)total);
+	reg.Set(total);
 
 	SetZ(total == 0);
 	SetN(false);
@@ -63,7 +63,7 @@ void Cpu::And(Register8& reg, byte val) {
 void Cpu::Or(Register8& reg, byte val) {
 	byte valReg = reg.Get();
 	byte total = valReg | val;
-	reg.Set((byte)total);
+	reg.Set(total);
 
 	SetZ(total == 0);
 	SetN(false);
@@ -74,7 +74,7 @@ void Cpu::Or(Register8& reg, byte val) {
 void Cpu::Xor(Register8& reg, byte val) {
 	byte valReg = reg.Get();
 	byte total = valReg ^ val;
-	reg.Set((byte)total);
+	reg.Set(total);
 
 	SetZ(total == 0);
 	SetN(false);
@@ -106,7 +106,7 @@ void Cpu::Dec(Register8& reg) {
 	reg.Set(total);
 	SetZ(total == 0);
 	SetN(true);
-	SetH((valReg & 0x0f) == 0x0f);
+	SetH((valReg & 0x0f) == 0x0);
 }
 
 void Cpu::Add16(Register16& reg, uint16 val) {
@@ -114,14 +114,14 @@ void Cpu::Add16(Register16& reg, uint16 val) {
 	int	   total = valReg + val;
 	reg.Set((uint16)total);
 	SetN(false);
-	SetH((valReg & 0xfff) > (total & 0xfff));
+	SetH((int)(valReg & 0xfff) > (total & 0xfff));
 	SetC(total > 0xffff);
 }
 
 void Cpu::Add16Signed(Register16& reg, int8 val) {
 	uint16 valReg = reg.Get();
-	int	   total = valReg + val;
-	reg.Set((uint16)total);
+	uint16 total = (int)valReg + (int)val;
+	reg.Set(total);
 	SetZ(false);
 	SetN(false);
 	SetH(((valReg ^ val ^ total) & 0x10) == 0x10);
@@ -605,9 +605,9 @@ void Cpu::Inst0x3e() {
 }
 void Cpu::Inst0x3f() {
 	// CCF
+	SetC(!GetC());
 	SetN(false);
 	SetH(false);
-	SetC(!GetC());
 }
 void Cpu::Inst0x40() {
 	// LD B, B

@@ -164,7 +164,7 @@ byte Memory::ReadHighRam(uint16 addr) {
 	}
 	else if (addr == 0xff4d) {
 		// speed switch
-		DEBUG_BREAK;
+		// DEBUG_BREAK;
 	}
 	else if (addr == 0xff4f) {
 		return VRAMBankIndex;
