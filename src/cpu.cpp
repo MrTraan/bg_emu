@@ -283,7 +283,7 @@ void Cpu::Inst0x06() {
 void Cpu::Inst0x07() {
 	// RLCA
 	byte val = A.Get();
-	byte res = (val << 1) || (val >> 7); // Put last bit first
+	byte res = (val << 1) | (val >> 7); // Put last bit first
 	A.Set(res);
 	SetZ(false);
 	SetN(false);
@@ -370,7 +370,7 @@ void Cpu::Inst0x17() {
 	SetZ(false);
 	SetN(false);
 	SetH(false);
-	SetC(res > 0x7f);
+	SetC(val > 0x7f);
 }
 void Cpu::Inst0x18() {
 	// JR r8
