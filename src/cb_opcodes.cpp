@@ -99,9 +99,9 @@ byte Srl(Cpu* cpu, byte val) {
 
 byte Swap(Cpu* cpu, byte val) {
 	byte swapped = ((val << 4) & 0xf0) | (val >> 4);
-	cpu->SetZ(swapped = 0);
+	cpu->SetZ(swapped == 0);
 	cpu->SetN(false);
-	cpu->SetH(true);
+	cpu->SetH(false);
 	cpu->SetC(false);
 	return swapped;
 }

@@ -43,16 +43,16 @@ void Cpu::Sub(Register8& reg, byte val, bool useCarry) {
 	int16 total = valReg - val - carry;
 	reg.Set((byte)total);
 
-	SetZ(total == 0);
+	SetZ((byte)total == 0);
 	SetN(true);
-	SetH((int16)(val & 0xF) - (valReg & 0xF) - carry < 0);
+	SetH((int16)(valReg & 0xF) - (val & 0xF) - carry < 0);
 	SetC(total < 0);
 }
 
 void Cpu::And(Register8& reg, byte val) {
 	byte valReg = reg.Get();
 	byte total = valReg & val;
-	reg.Set((byte)total);
+	reg.Set(total);
 
 	SetZ(total == 0);
 	SetN(false);
@@ -63,7 +63,7 @@ void Cpu::And(Register8& reg, byte val) {
 void Cpu::Or(Register8& reg, byte val) {
 	byte valReg = reg.Get();
 	byte total = valReg | val;
-	reg.Set((byte)total);
+	reg.Set(total);
 
 	SetZ(total == 0);
 	SetN(false);
@@ -74,7 +74,7 @@ void Cpu::Or(Register8& reg, byte val) {
 void Cpu::Xor(Register8& reg, byte val) {
 	byte valReg = reg.Get();
 	byte total = valReg ^ val;
-	reg.Set((byte)total);
+	reg.Set(total);
 
 	SetZ(total == 0);
 	SetN(false);
@@ -84,11 +84,11 @@ void Cpu::Xor(Register8& reg, byte val) {
 
 void Cpu::Cp(Register8& reg, byte val) {
 	byte valReg = reg.Get();
-	byte total = valReg - val;
+	byte total = val - valReg;
 	SetZ(total == 0);
 	SetN(true);
-	SetH((valReg & 0x0f) > (val & 0x0f));
-	SetC(valReg > val);
+	SetH((valReg & 0x0f) < (val & 0x0f));
+	SetC(valReg < val);
 }
 
 void Cpu::Inc(Register8& reg) {
@@ -105,8 +105,8 @@ void Cpu::Dec(Register8& reg) {
 	byte total = valReg - 1;
 	reg.Set(total);
 	SetZ(total == 0);
-	SetN(false);
-	SetH((valReg & 0x0f) > 0x0f);
+	SetN(true);
+	SetH((valReg & 0x0f) == 0x0);
 }
 
 void Cpu::Add16(Register16& reg, uint16 val) {
@@ -114,14 +114,14 @@ void Cpu::Add16(Register16& reg, uint16 val) {
 	int	   total = valReg + val;
 	reg.Set((uint16)total);
 	SetN(false);
-	SetH((valReg & 0xfff) > (total & 0xfff));
+	SetH((int)(valReg & 0xfff) > (total & 0xfff));
 	SetC(total > 0xffff);
 }
 
 void Cpu::Add16Signed(Register16& reg, int8 val) {
 	uint16 valReg = reg.Get();
-	int	   total = valReg + val;
-	reg.Set((uint16)total);
+	uint16 total = (int)valReg + (int)val;
+	reg.Set(total);
 	SetZ(false);
 	SetN(false);
 	SetH(((valReg ^ val ^ total) & 0x10) == 0x10);
@@ -236,6 +236,7 @@ int Cpu::ExecuteNextOPCode() {
 	additionnalTicks = 0;
 	lastInstructionName = s_instructionsNames[opcode];
 	//printf("%s\n", s_instructionsNames[opcode]);
+	//printf("0x%02x 0x%04x\n", opcode, PC - 1);
 
 	InstructionPtr op = s_instructions[opcode];
 	if (op == nullptr) {
@@ -282,7 +283,7 @@ void Cpu::Inst0x06() {
 void Cpu::Inst0x07() {
 	// RLCA
 	byte val = A.Get();
-	byte res = (val << 1) || (val >> 7); // Put last bit first
+	byte res = (val << 1) | (val >> 7); // Put last bit first
 	A.Set(res);
 	SetZ(false);
 	SetN(false);
@@ -369,7 +370,7 @@ void Cpu::Inst0x17() {
 	SetZ(false);
 	SetN(false);
 	SetH(false);
-	SetC(res > 0x7f);
+	SetC(val > 0x7f);
 }
 void Cpu::Inst0x18() {
 	// JR r8
@@ -604,9 +605,9 @@ void Cpu::Inst0x3e() {
 }
 void Cpu::Inst0x3f() {
 	// CCF
+	SetC(!GetC());
 	SetN(false);
 	SetH(false);
-	SetC(!GetC());
 }
 void Cpu::Inst0x40() {
 	// LD B, B
@@ -1326,8 +1327,8 @@ void Cpu::Inst0xe8() {
 	SetZ(false);
 }
 void Cpu::Inst0xe9() {
-	// JP (HL)
-	PC = mem->Read(HL.Get());
+	// JP HL
+	PC = HL.Get();
 }
 void Cpu::Inst0xea() {
 	// LD (a16), A
@@ -1446,261 +1447,39 @@ Cpu::InstructionPtr Cpu::s_instructions[0x100] = {
 	&Cpu::Inst0xfc, &Cpu::Inst0xfd, &Cpu::Inst0xfe, &Cpu::Inst0xff
 };
 
-const char* Cpu::s_instructionsNames[0x100] = {
-	"NOP",
-	"LD BC, d16",
-	"LD (BC), A",
-	"INC BC",
-	"INC B",
-	"DEC B",
-	"LD B, d8",
-	"RLCA",
-	"LD (a16), SP",
-	"ADD HL, BC",
-	"LD A, (BC)",
-	"DEC BC",
-	"INC C",
-	"DEC C",
-	"LD C, d8",
-	"RRCA",
-	"STOP 0",
-	"LD DE, d16",
-	"LD (DE), A",
-	"INC DE",
-	"INC D",
-	"DEC D",
-	"LD D, d8",
-	"RLA",
-	"JR r8",
-	"ADD HL, DE",
-	"LD A, (DE)",
-	"DEC DE",
-	"INC E",
-	"DEC E",
-	"LD E, d8",
-	"RRA",
-	"JR NZ, r8",
-	"LD HL, d16",
-	"LD (HL+), A",
-	"INC HL",
-	"INC H",
-	"DEC H",
-	"LD H, d8",
-	"DAA",
-	"JR Z, r8",
-	"ADD HL, HL",
-	"LD A, (HL+)",
-	"DEC HL",
-	"INC L",
-	"DEC L",
-	"LD L, d8",
-	"CPL",
-	"JR NC, r8",
-	"LD SP, d16",
-	"LD (HL-), A",
-	"INC SP",
-	"INC (HL)",
-	"DEC (HL)",
-	"LD (HL), d8",
-	"SCF",
-	"JR C, r8",
-	"ADD HL, SP",
-	"LD A, (HL-)",
-	"DEC SP",
-	"INC A",
-	"DEC A",
-	"LD A, d8",
-	"CCF",
-	"LD B, B",
-	"LD B, C",
-	"LD B, D",
-	"LD B, E",
-	"LD B, H",
-	"LD B, L",
-	"LD B, (HL)",
-	"LD B, A",
-	"LD C, B",
-	"LD C, C",
-	"LD C, D",
-	"LD C, E",
-	"LD C, H",
-	"LD C, L",
-	"LD C, (HL)",
-	"LD C, A",
-	"LD D, B",
-	"LD D, C",
-	"LD D, D",
-	"LD D, E",
-	"LD D, H",
-	"LD D, L",
-	"LD D, (HL)",
-	"LD D, A",
-	"LD E, B",
-	"LD E, C",
-	"LD E, D",
-	"LD E, E",
-	"LD E, H",
-	"LD E, L",
-	"LD E, (HL)",
-	"LD E, A",
-	"LD H, B",
-	"LD H, C",
-	"LD H, D",
-	"LD H, E",
-	"LD H, H",
-	"LD H, L",
-	"LD H, (HL)",
-	"LD H, A",
-	"LD L, B",
-	"LD L, C",
-	"LD L, D",
-	"LD L, E",
-	"LD L, H",
-	"LD L, L",
-	"LD L, (HL)",
-	"LD L, A",
-	"LD (HL), B",
-	"LD (HL), C",
-	"LD (HL), D",
-	"LD (HL), E",
-	"LD (HL), H",
-	"LD (HL), L",
-	"HALT",
-	"LD (HL), A",
-	"LD A, B",
-	"LD A, C",
-	"LD A, D",
-	"LD A, E",
-	"LD A, H",
-	"LD A, L",
-	"LD A, (HL)",
-	"LD A, A",
-	"ADD A,B",
-	"ADD A,C",
-	"ADD A,D",
-	"ADD A,E",
-	"ADD A,H",
-	"ADD A,L",
-	"ADD A,(HL)",
-	"ADD A,A",
-	"ADC A,B",
-	"ADC A,C",
-	"ADC A,D",
-	"ADC A,E",
-	"ADC A,H",
-	"ADC A,L",
-	"ADC A,(HL)",
-	"ADC A,A",
-	"SUB A, B",
-	"SUB A, C",
-	"SUB A, D",
-	"SUB A, E",
-	"SUB A, H",
-	"SUB A, L",
-	"SUB A, (HL)",
-	"SUB A, A",
-	"SBC A,B",
-	"SBC A,C",
-	"SBC A,D",
-	"SBC A,E",
-	"SBC A,H",
-	"SBC A,L",
-	"SBC A,(HL)",
-	"SBC A,A",
-	"AND A, B",
-	"AND A, C",
-	"AND A, D",
-	"AND A, E",
-	"AND A, H",
-	"AND A, L",
-	"AND A, (HL)",
-	"AND A, A",
-	"XOR A, B",
-	"XOR A, C",
-	"XOR A, D",
-	"XOR A, E",
-	"XOR A, H",
-	"XOR A, L",
-	"XOR A, (HL)",
-	"XOR A, A",
-	"OR B",
-	"OR C",
-	"OR D",
-	"OR E",
-	"OR H",
-	"OR L",
-	"OR (HL)",
-	"OR A",
-	"CP B",
-	"CP C",
-	"CP D",
-	"CP E",
-	"CP H",
-	"CP L",
-	"CP (HL)",
-	"CP A",
-	"RET NZ",
-	"POP BC",
-	"JP NZ, a16",
-	"JP a16",
-	"CALL NZ",
-	"PUSH BC",
-	"ADD A, d8",
-	"RST 0x00",
-	"RET Z",
-	"RET",
-	"JP Z, a16",
-	"PREFIX CB",
-	"CALL Z",
-	"CALL a16",
-	"ADC A, d8",
-	"RST 0x08",
-	"RET NC",
-	"POP DE",
-	"JP NC, a16",
-	"INVALID_OP",
-	"CALL NC",
-	"PUSH DE",
-	"SUB A, d8",
-	"RST 0x10",
-	"RET C",
-	"RETI",
-	"JP C, a16",
-	"INVALID_OP",
-	"CALL C",
-	"INVALID_OP",
-	"SBC A, d8",
-	"RST 0x18",
-	"LDH (a8), A",
-	"POP HL",
-	"LD (C), A",
-	"INVALID_OP",
-	"INVALID_OP",
-	"PUSH HL",
-	"AND A, d8",
-	"RST 0x20",
-	"ADD SP, r8",
-	"JP (HL)",
-	"LD (a16), A",
-	"INVALID_OP",
-	"INVALID_OP",
-	"INVALID_OP",
-	"XOR A, d8",
-	"RST 0x28",
-	"LDH A, (a8)",
-	"POP AF",
-	"LD A, (C)",
-	"DI",
-	"INVALID_OP",
-	"PUSH AF",
-	"OR A, d8",
-	"RST 0x30",
-	"LD HL, SP+r8",
-	"LD SP, HL",
-	"LD A, (a16)",
-	"EI",
-	"INVALID_OP",
-	"INVALID_OP",
-	"CP A, d8",
-	"RST 0x38",
+const char * Cpu::s_instructionsNames[ 0x100 ] = {
+	"NOP",		   "LD BC, d16", "LD (BC), A",  "INC BC",	  "INC B",		 "DEC B",	   "LD B, d8",	  "RLCA",		"LD (a16), SP", "ADD HL, BC",
+	"LD A, (BC)",  "DEC BC",	 "INC C",		"DEC C",	  "LD C, d8",	 "RRCA",	   "STOP 0",	  "LD DE, d16", "LD (DE), A",   "INC DE",
+	"INC D",	   "DEC D",		 "LD D, d8",	"RLA",		  "JR r8",		 "ADD HL, DE", "LD A, (DE)",  "DEC DE",		"INC E",		"DEC E",
+	"LD E, d8",	   "RRA",		 "JR NZ, r8",   "LD HL, d16", "LD (HL+), A", "INC HL",	   "INC H",		  "DEC H",		"LD H, d8",		"DAA",
+	"JR Z, r8",	   "ADD HL, HL", "LD A, (HL+)", "DEC HL",	  "INC L",		 "DEC L",	   "LD L, d8",	  "CPL",		"JR NC, r8",	"LD SP, d16",
+	"LD (HL-), A", "INC SP",	 "INC (HL)",	"DEC (HL)",   "LD (HL), d8", "SCF",		   "JR C, r8",	  "ADD HL, SP", "LD A, (HL-)",  "DEC SP",
+	"INC A",	   "DEC A",		 "LD A, d8",	"CCF",		  "LD B, B",	 "LD B, C",	   "LD B, D",	  "LD B, E",	"LD B, H",		"LD B, L",
+	"LD B, (HL)",  "LD B, A",	 "LD C, B",		"LD C, C",	  "LD C, D",	 "LD C, E",	   "LD C, H",	  "LD C, L",	"LD C, (HL)",   "LD C, A",
+	"LD D, B",	   "LD D, C",	 "LD D, D",		"LD D, E",	  "LD D, H",	 "LD D, L",	   "LD D, (HL)",  "LD D, A",	"LD E, B",		"LD E, C",
+	"LD E, D",	   "LD E, E",	 "LD E, H",		"LD E, L",	  "LD E, (HL)",  "LD E, A",	   "LD H, B",	  "LD H, C",	"LD H, D",		"LD H, E",
+	"LD H, H",	   "LD H, L",	 "LD H, (HL)",  "LD H, A",	  "LD L, B",	 "LD L, C",	   "LD L, D",	  "LD L, E",	"LD L, H",		"LD L, L",
+	"LD L, (HL)",  "LD L, A",	 "LD (HL), B",  "LD (HL), C", "LD (HL), D",  "LD (HL), E", "LD (HL), H",  "LD (HL), L", "HALT",			"LD (HL), A",
+	"LD A, B",	   "LD A, C",	 "LD A, D",		"LD A, E",	  "LD A, H",	 "LD A, L",	   "LD A, (HL)",  "LD A, A",	"ADD A,B",		"ADD A,C",
+	"ADD A,D",	   "ADD A,E",	 "ADD A,H",		"ADD A,L",	  "ADD A,(HL)",  "ADD A,A",	   "ADC A,B",	  "ADC A,C",	"ADC A,D",		"ADC A,E",
+	"ADC A,H",	   "ADC A,L",	 "ADC A,(HL)",  "ADC A,A",	  "SUB A, B",	 "SUB A, C",   "SUB A, D",	  "SUB A, E",   "SUB A, H",		"SUB A, L",
+	"SUB A, (HL)", "SUB A, A",   "SBC A,B",		"SBC A,C",	  "SBC A,D",	 "SBC A,E",	   "SBC A,H",	  "SBC A,L",	"SBC A,(HL)",   "SBC A,A",
+	"AND A, B",	   "AND A, C",   "AND A, D",	"AND A, E",   "AND A, H",	 "AND A, L",   "AND A, (HL)", "AND A, A",   "XOR A, B",		"XOR A, C",
+	"XOR A, D",	   "XOR A, E",   "XOR A, H",	"XOR A, L",   "XOR A, (HL)", "XOR A, A",   "OR B",		  "OR C",		"OR D",			"OR E",
+	"OR H",		   "OR L",		 "OR (HL)",		"OR A",		  "CP B",		 "CP C",	   "CP D",		  "CP E",		"CP H",			"CP L",
+	"CP (HL)",	   "CP A",		 "RET NZ",		"POP BC",	  "JP NZ, a16",  "JP a16",	   "CALL NZ",	  "PUSH BC",	"ADD A, d8",	"RST 0x00",
+	"RET Z",	   "RET",		 "JP Z, a16",   "PREFIX CB",  "CALL Z",		 "CALL a16",   "ADC A, d8",   "RST 0x08",   "RET NC",		"POP DE",
+	"JP NC, a16",  "INVALID_OP", "CALL NC",		"PUSH DE",	  "SUB A, d8",   "RST 0x10",   "RET C",		  "RETI",		"JP C, a16",	"INVALID_OP",
+	"CALL C",	   "INVALID_OP", "SBC A, d8",   "RST 0x18",   "LDH (a8), A", "POP HL",	   "LD (C), A",   "INVALID_OP", "INVALID_OP",   "PUSH HL",
+	"AND A, d8",   "RST 0x20",   "ADD SP, r8",  "JP HL",	  "LD (a16), A", "INVALID_OP", "INVALID_OP",  "INVALID_OP", "XOR A, d8",	"RST 0x28",
+	"LDH A, (a8)", "POP AF",	 "LD A, (C)",   "DI",		  "INVALID_OP",  "PUSH AF",	   "OR A, d8",	  "RST 0x30",   "LD HL, SP+r8", "LD SP, HL",
+	"LD A, (a16)", "EI",		 "INVALID_OP",  "INVALID_OP", "CP A, d8",	 "RST 0x38",
 };
+
+byte Cpu::s_instructionsSize[ 0x100 ] = { 1, 3, 1, 1, 1, 1, 2, 1, 3, 1, 1, 1, 1, 1, 2, 1, 2, 3, 1, 1, 1, 1, 2, 1, 2, 1, 1, 1, 1, 1, 2, 1, 2, 3, 1, 1, 1,
+										  1, 2, 1, 2, 1, 1, 1, 1, 1, 2, 1, 2, 3, 1, 1, 1, 1, 2, 1, 2, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+										  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+										  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+										  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+										  1, 1, 1, 1, 1, 1, 1, 1, 1, 3, 3, 3, 1, 2, 1, 1, 1, 3, 1, 3, 3, 2, 1, 1, 1, 3, 1, 3, 1, 2, 1, 1, 1, 3, 1, 3, 1,
+										  2, 1, 2, 1, 2, 1, 1, 1, 2, 1, 2, 1, 3, 1, 1, 1, 2, 1, 2, 1, 2, 1, 1, 1, 2, 1, 2, 1, 3, 1, 1, 1, 2, 1 };

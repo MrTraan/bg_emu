@@ -5,7 +5,7 @@
 
 struct Memory {
 	Memory(Cartridge * _cart);
-
+	void Reset();
 
 	Cartridge * cart;
 	byte highRAM[0x100];

@@ -25,6 +25,13 @@ struct Ppu {
 		delete backBuffer;
 	}
 
+	void Reset() {
+		frontBuffer->Clear();
+		backBuffer->Clear();
+		scanlineCounter = 456;
+		lastDrawnScanLine = 0;
+	}
+
 	void SwapBuffers();
 	void Update(int cycles);
 	bool IsLcdOn();

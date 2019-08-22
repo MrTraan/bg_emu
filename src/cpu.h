@@ -33,9 +33,10 @@ struct Register16 {
 
 struct Cpu {
 	typedef void (Cpu::* InstructionPtr)(void);
-	static InstructionPtr s_instructions[0x100];
-	static const char * s_instructionsNames[0x100];
-	const char * lastInstructionName = nullptr;
+	static InstructionPtr s_instructions[ 0x100 ];
+	static const char *   s_instructionsNames[ 0x100 ];
+	static byte			  s_instructionsSize[ 0x100 ];
+	const char *		  lastInstructionName = nullptr;
 
 	Register16	AF;
 	Register16  BC;
@@ -69,13 +70,16 @@ struct Cpu {
 
 	// Initialize CPU with default values
 	Cpu(Memory* _mem) : mem(_mem) {
-		PC = 0x0;
+		Reset();
+	}
+
+	void Reset() {
+		PC = 0x100;
 		AF.Set(0x01B0);
 		BC.Set(0);
 		DE.Set(0xFF56);
 		HL.Set(0x000D);
 		SP.Set(0xFFFE);
-
 		F.mask = 0xF0;
 	}
 

@@ -2,8 +2,6 @@
 #include "gb_emu.h"
 #include "memory.h"
 
-static byte basicROM[0x8000];
-static byte basicROMRam[0x8000];
 static byte BIOS[0x100] = {
 	0x31, 0xFE, 0xFF, 0xAF, 0x21, 0xFF, 0x9F, 0x32, 0xCB, 0x7C, 0x20, 0xFB, 0x21, 0x26, 0xFF, 0x0E,
 	0x11, 0x3E, 0x80, 0x32, 0xE2, 0x0C, 0x3E, 0xF3, 0xE2, 0x32, 0x3E, 0x77, 0x77, 0x3E, 0xFC, 0xE0,
@@ -23,18 +21,17 @@ static byte BIOS[0x100] = {
 	0xF5, 0x06, 0x19, 0x78, 0x86, 0x23, 0x05, 0x20, 0xFB, 0x86, 0x20, 0xFE, 0x3E, 0x01, 0xE0, 0x50 };
 
 Memory::Memory(Cartridge * _cart) : cart(_cart) {
+	Reset();
+}
+
+void Memory::Reset() {
 	memset(VRAM, 0, 0x4000);
 	memset(WorkRam, 0, 0x9000);
 	memset(OAM, 0, 0xa0);
 	memset(highRAM, 0, 0x100);
-
 	WorkRamBankIndex = 1;
 	VRAMBankIndex = 0;
-
-	memcpy(basicROM, BIOS, 0x100);
-
 	highRAM[0x0f] = 0;
-
 }
 
 void Memory::Write(uint16 addr, byte value) {
@@ -50,7 +47,7 @@ void Memory::Write(uint16 addr, byte value) {
 		VRAM[addr - 0x8000 + bankOffset] = value;
 	}
 	else if (addr < 0xC000) {
-		basicROMRam[addr - 0xA000] = value;
+		cart->WriteRAM(addr, value);
 	}
 	else if (addr < 0xD000) {
 		// Work RAM, bank 0
@@ -78,9 +75,9 @@ void Memory::Write(uint16 addr, byte value) {
 }
 
 byte Memory::Read(uint16 addr) {
-	if (highRAM[0x50] == 0 && addr < 0x100) {
-		return BIOS[addr];
-	}
+	//if (highRAM[0x50] == 0 && addr < 0x100) {
+	//	return BIOS[addr];
+	//}
 	switch ((addr & 0xf000) >> 12) { // Switch on 4th byte
 	case 0x0:
 	case 0x1:
@@ -101,20 +98,19 @@ byte Memory::Read(uint16 addr) {
 
 	case 0xa:
 	case 0xb:
-		// ROM RAM
-		return basicROMRam[addr - 0xa000];
+		return cart->Read(addr);
 
 	case 0xc:
-	case 0xd:
 		// Work RAM, bank 0
 		return WorkRam[addr - 0xc000];
-	case 0xe:
+	case 0xd:
 		// Work RAM with banking
 		return WorkRam[addr - 0xc000 + (WorkRamBankIndex * 0x1000)];
+	case 0xe:
 	case 0xf: {
 		if (addr < 0xFE00) {
 			// ECHO RAM
-			return WorkRam[addr - 0xf000];
+			return WorkRam[addr - 0xe000];
 		}
 		else if (addr < 0xFEA0) {
 			// Object Attribute Memory
@@ -168,7 +164,7 @@ byte Memory::ReadHighRam(uint16 addr) {
 	}
 	else if (addr == 0xff4d) {
 		// speed switch
-		DEBUG_BREAK;
+		// DEBUG_BREAK;
 	}
 	else if (addr == 0xff4f) {
 		return VRAMBankIndex;
@@ -232,7 +228,7 @@ void Memory::WriteHighRam(uint16 addr, byte value) {
 	case 0x6b:
 	case 0x70:
 		// CGB stuff
-		DEBUG_BREAK;
+//		DEBUG_BREAK;
 		break;
 	default:
 		highRAM[lowPart] = value;
