@@ -25,6 +25,28 @@ static int opcodeCyclesCost[] = {
 		3, 3, 2, 1, 0, 4, 2, 4, 3, 2, 4, 1, 0, 0, 2, 4, // f
 };
 
+// Return Cycles used
+int Cpu::ExecuteNextOPCode() {
+	// All instructions are detailled here : https://www.pastraiser.com/cpu/gameboy/gameboy_opcodes.html
+	byte opcode = PopPC();
+	int  ticksUsed = opcodeCyclesCost[opcode] * 4;
+	additionnalTicks = 0;
+	lastInstructionName = s_instructionsNames[opcode];
+	//printf("%s\n", s_instructionsNames[opcode]);
+	//printf("[0x%02x]: 0x%04x\n", opcode, PC - 1);
+
+	InstructionPtr op = s_instructions[opcode];
+	if (op == nullptr) {
+		// Unknown opcode
+		DEBUG_BREAK;
+	}
+	else {
+		(this->*op)();
+	}
+	return ticksUsed + additionnalTicks;
+}
+
+
 void Cpu::Add(Register8& reg, byte val, bool useCarry) {
 	byte  valReg = reg.Get();
 	byte  carry = GetC() && useCarry ? 1 : 0;
@@ -226,27 +248,6 @@ int Cpu::ProcessInterupts() {
 	}
 
 	return 0;
-}
-
-// Return Cycles used
-int Cpu::ExecuteNextOPCode() {
-	// All instructions are detailled here : https://www.pastraiser.com/cpu/gameboy/gameboy_opcodes.html
-	byte opcode = PopPC();
-	int  ticksUsed = opcodeCyclesCost[opcode] * 4;
-	additionnalTicks = 0;
-	lastInstructionName = s_instructionsNames[opcode];
-	//printf("%s\n", s_instructionsNames[opcode]);
-	//printf("0x%02x 0x%04x\n", opcode, PC - 1);
-
-	InstructionPtr op = s_instructions[opcode];
-	if (op == nullptr) {
-		// Unknown opcode
-		DEBUG_BREAK;
-	}
-	else {
-		(this->*op)();
-	}
-	return ticksUsed + additionnalTicks;
 }
 
 void Cpu::Inst0x00() {

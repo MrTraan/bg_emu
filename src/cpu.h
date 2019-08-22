@@ -56,9 +56,9 @@ struct Cpu {
 
 	Memory* mem;
 
-	int additionnalTicks = 0;
+	int additionnalTicks;
 	
-	int speed = 1; // Will be useful later for GBC
+	int speed; // Will be useful later for GBC
 
 	bool interuptsEnabled = true;
 	bool interuptsOn = true;
@@ -81,6 +81,12 @@ struct Cpu {
 		HL.Set(0x000D);
 		SP.Set(0xFFFE);
 		F.mask = 0xF0;
+
+		speed = 1;
+		additionnalTicks = 0;
+		interuptsEnabled = true;
+		interuptsOn = true;
+		isOnHalt = false;
 	}
 
 	int	   ExecuteNextOPCode();

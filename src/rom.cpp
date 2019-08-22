@@ -28,6 +28,8 @@ Cartridge * Cartridge::LoadFromFile(const char * path) {
 		MBC1 * rom = new MBC1();
 		memcpy(rom->data, cartData, sizeof(rom->data));
 		cart = rom;
+	} else {
+		DEBUG_BREAK;
 	}
 
 	delete [] cartData;
