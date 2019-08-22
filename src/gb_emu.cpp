@@ -45,9 +45,14 @@ void drop_callback(GLFWwindow * window, int count, const char ** paths) {
 	if (count == 1) {
 		delete mem;
 		delete cart;
+		delete cpu;
+		delete ppu;
 
 		cart = Cartridge::LoadFromFile(paths[0]);
 		mem = new Memory(cart);
+		cpu = new Cpu(mem);
+		ppu = new Ppu(mem, cpu);
+
 		cpu->Reset();
 		ppu->Reset();
 		shouldRun = false;
@@ -103,6 +108,7 @@ int main(int argc, char **argv)
 	bool show_demo_window = true;
 
 	unsigned long PCBreakpoint = 0x0;
+	int num_instructions = 0;
 
 	shouldRun = false; 
 	bool showRomCode = false;
@@ -125,6 +131,7 @@ int main(int argc, char **argv)
 		DrawDebugWindow(*cpu, *mem, showRomCode);
 
 		static char buf[64] = "";
+		ImGui::Text("Num instructions: %d", num_instructions);
 		ImGui::InputText("Break at PC: ", buf, 64, ImGuiInputTextFlags_CharsHexadecimal | ImGuiInputTextFlags_CharsUppercase);
 		PCBreakpoint = strtoul(buf, nullptr, 16);
         if (ImGui::Button(shouldRun ? "Pause" : "Run")) {
@@ -150,6 +157,7 @@ int main(int argc, char **argv)
 		int totalClocksThisFrame = 0;
 		while (totalClocksThisFrame < GBEMU_CLOCK_SPEED / 60 && (shouldRun || shouldStep)) {
 			int clocks = cpu->ExecuteNextOPCode();
+			num_instructions++;
 			totalClocksThisFrame += clocks;
 			ppu->Update(clocks);
 			totalClocksThisFrame += cpu->ProcessInterupts();
@@ -247,7 +255,7 @@ void DrawDebugWindow(Cpu& cpu, Memory& mem, bool showRomCode) {
 		}
 		for (int addr = 0; addr < 0x8000; addr++)
 		{
-			byte romValue = mem.Read(cpu.PC);
+			byte romValue = mem.Read(addr);
 
 			if (romValue == 0) {
 				continue; // Displaying a large list cause a huge performance hit, so we might as well not display NOP
