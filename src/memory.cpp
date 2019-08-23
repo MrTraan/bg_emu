@@ -75,9 +75,9 @@ void Memory::Write(uint16 addr, byte value) {
 }
 
 byte Memory::Read(uint16 addr) {
-	//if (highRAM[0x50] == 0 && addr < 0x100) {
-	//	return BIOS[addr];
-	//}
+	if (highRAM[0x50] == 0 && addr < 0x100) {
+		return BIOS[addr];
+	}
 	switch ((addr & 0xf000) >> 12) { // Switch on 4th byte
 	case 0x0:
 	case 0x1:
@@ -126,11 +126,12 @@ byte Memory::Read(uint16 addr) {
 		
 	}
 	}
-	return 0xFF;
+	return 0x0;
 }
 
 byte Memory::ReadHighRam(uint16 addr) {
 	if (addr == 0xff00) {
+		return 0xDF;
 //		DEBUG_BREAK; // JOYPAD
 	}
 	else if (addr >= 0xff10 && addr <= 0xff26) {
@@ -175,6 +176,7 @@ byte Memory::ReadHighRam(uint16 addr) {
 	else {
 		return highRAM[addr - 0xff00];
 	}
+	return 0;
 }
 
 void Memory::WriteHighRam(uint16 addr, byte value) {

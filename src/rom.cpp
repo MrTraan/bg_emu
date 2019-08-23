@@ -28,6 +28,10 @@ Cartridge * Cartridge::LoadFromFile(const char * path) {
 		MBC1 * rom = new MBC1();
 		memcpy(rom->data, cartData, sizeof(rom->data));
 		cart = rom;
+	} else if (cartType == 0x1b) {
+		MBC5 * rom = new MBC5();
+		memcpy(rom->data, cartData, sizeof(rom->data));
+		cart = rom;
 	} else {
 		DEBUG_BREAK;
 	}
@@ -89,6 +93,47 @@ void MBC1::Write(uint16 addr, byte val) {
 }
 
 void MBC1::WriteRAM(uint16 addr, byte val) {
+	if (ramEnabled) {
+		ram[ramBank * 0x2000 + addr - 0xa000] = val;
+	}
+}
+
+byte MBC5::Read(uint16 addr) {
+	if (addr < 0x4000) {
+		return data[addr];
+	} else if (addr < 0x8000) {
+		return data[addr - 0x4000 + romBank * 0x4000];
+	} else {
+		return ram[ramBank * 0x2000 + addr - 0xa000];
+	}
+}
+
+void MBC5::Write(uint16 addr, byte val) {
+	switch ((addr & 0xf000) >> 12) { // Switch on 4th byte
+	case 0x0:
+	case 0x1:
+		if ((val & 0xf) == 0xa) {
+			ramEnabled = true;
+		} else if ((val & 0xf) == 0x0) {
+			ramEnabled = false;
+		}
+		break;
+
+	case 0x2:
+		// Sets rom bank number
+		romBank = (romBank & 0x100) | val;
+		break;
+
+	case 0x3:
+		romBank = (romBank & 0xff) | ((val & 0x01) << 8);
+
+	case 0x4:
+	case 0x5:
+		ramBank = val & 0xF;
+	}
+}
+
+void MBC5::WriteRAM(uint16 addr, byte val) {
 	if (ramEnabled) {
 		ram[ramBank * 0x2000 + addr - 0xa000] = val;
 	}

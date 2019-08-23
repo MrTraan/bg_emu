@@ -65,8 +65,8 @@ int main(int argc, char **argv)
 	if (argc == 2) {
 		romPath = argv[1];
 	} else {
-        romPath = "../../../roms/cpu_instrs.gb";
-        //romPath = "../../../roms/tetris.gb";
+        //romPath = "../../../roms/cpu_instrs.gb";
+        romPath = "../../../roms/tetris.gb";
 	}
 	cart = Cartridge::LoadFromFile(romPath);
 	if (cart == nullptr) {
