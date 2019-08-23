@@ -15,6 +15,7 @@
 #include "gui/window.h"
 #include "gui/keyboard.h"
 #include "gui/screen_buffer.h"
+#include "audio/olcNoiseMaker.h"
 
 void DrawDebugWindow(Cpu& cpu, Memory& mem, bool showRomCode);
 
@@ -58,6 +59,19 @@ void drop_callback(GLFWwindow * window, int count, const char ** paths) {
 		ppu->Reset();
 		shouldRun = false;
 	}
+}
+
+// Global synthesizer variables
+std::atomic<double> dFrequencyOutput = 0.0;			// dominant output frequency of instrument, i.e. the note
+double dOctaveBaseFrequency = 110.0; // A2		// frequency of octave represented by keyboard
+double d12thRootOf2 = pow ( 2.0, 1.0 / 12.0 );		// assuming western 12 notes per ocatve
+
+// Function used by olcNoiseMaker to generate sound waves
+// Returns amplitude (-1.0 to +1.0) as a function of time
+double MakeNoise ( double dTime )
+{
+	double dOutput = sin ( dFrequencyOutput * 2.0 * 3.14159 * dTime );
+	return dOutput * 0.5; // Master Volume
 }
 
 int main(int argc, char **argv)
@@ -107,6 +121,21 @@ int main(int argc, char **argv)
 	glCullFace(GL_BACK);
 	glfwSetDropCallback(window.GetGlfwWindow(), drop_callback);
 
+	// Get all sound hardware
+	std::vector<std::wstring> devices = olcNoiseMaker<short>::Enumerate ();
+
+	// Display findings
+	for ( auto d : devices ) std::wcout << "Found Output Device: " << d << std::endl;
+	std::wcout << "Using Device: " << devices[ 0 ] << std::endl;
+
+	// Create sound machine!!
+	olcNoiseMaker<short> sound ( devices[ 0 ], 44100, 1, 8, 512 );
+
+	// Link noise function with sound machine
+	sound.SetUserFunction ( MakeNoise );
+	int nCurrentKey = -1;
+	bool bKeyPressed = false;
+
 
 	bool show_demo_window = true;
 
@@ -116,6 +145,31 @@ int main(int argc, char **argv)
 	shouldRun = false; 
 	bool showRomCode = false;
 	while (!window.ShouldClose()) {
+		for ( int k = 0; k < 16; k++ )
+		{
+			if ( GetAsyncKeyState ( ( unsigned char )( "ZSXCFVGBNJMK\xbcL\xbe\xbf"[ k ] ) ) & 0x8000 )
+			{
+				if ( nCurrentKey != k )
+				{
+					dFrequencyOutput = dOctaveBaseFrequency * pow ( d12thRootOf2, k );
+					std::wcout << "\rNote On : " << sound.GetTime () << "s " << dFrequencyOutput << "Hz";
+					nCurrentKey = k;
+				}
+
+				bKeyPressed = true;
+			}
+		}
+
+		if ( !bKeyPressed )
+		{
+			if ( nCurrentKey != -1 )
+			{
+				std::wcout << "\rNote Off: " << sound.GetTime () << "s                        ";
+				nCurrentKey = -1;
+			}
+
+			dFrequencyOutput = 0.0;
+		}
 		double startTime = glfwGetTime();
 
 		window.Clear();

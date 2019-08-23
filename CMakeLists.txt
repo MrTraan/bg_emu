@@ -43,6 +43,8 @@ add_executable (gb_emu
 "./src/gui/screen_buffer.cpp"
 
 "src/gui/glad.c"
+
+"src/audio/olcNoiseMaker.h"
 # imgui
 "./src/imgui/imgui.cpp"
 "./src/imgui/imgui_widgets.cpp"
