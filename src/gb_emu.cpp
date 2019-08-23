@@ -45,7 +45,6 @@ void drop_callback(GLFWwindow * window, int count, const char ** paths) {
 	if (count == 1) {
 		delete mem;
 		delete cart;
-		delete cpu;
 		delete ppu;
 
 		cart = Cartridge::LoadFromFile(paths[0]);
