@@ -32,6 +32,7 @@ void Memory::Reset() {
 	WorkRamBankIndex = 1;
 	VRAMBankIndex = 0;
 	highRAM[0x0f] = 0;
+	inputMask = 0xff;
 }
 
 void Memory::Write(uint16 addr, byte value) {
@@ -131,8 +132,15 @@ byte Memory::Read(uint16 addr) {
 
 byte Memory::ReadHighRam(uint16 addr) {
 	if (addr == 0xff00) {
-		return 0xDF;
-//		DEBUG_BREAK; // JOYPAD
+		// JOYPAD
+		byte columnMask = highRAM[0x0];
+		byte val = 0xf;
+		if (BIT_IS_SET(columnMask, 4)) {
+			val = inputMask & 0xf;
+		} else if (BIT_IS_SET(columnMask, 5)) {
+			val = (inputMask >> 4) & 0xf;
+		}
+		return columnMask | 0xc0 | val;
 	}
 	else if (addr >= 0xff10 && addr <= 0xff26) {
 //		DEBUG_BREAK; // READ SOUND

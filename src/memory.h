@@ -17,6 +17,8 @@ struct Memory {
 	byte WorkRamBankIndex;
 
 	byte OAM[0xa0];
+	
+	byte inputMask;
 
 	bool hdmaActive = false;
 	byte hdmaLength = 0;

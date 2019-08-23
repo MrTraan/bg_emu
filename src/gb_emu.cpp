@@ -50,9 +50,11 @@ void drop_callback(GLFWwindow * window, int count, const char ** paths) {
 
 		cart = Cartridge::LoadFromFile(paths[0]);
 		mem = new Memory(cart);
-		cpu = new Cpu(mem);
 		ppu = new Ppu(mem, cpu);
 
+		Keyboard::s_mem = mem;
+		Keyboard::s_cpu = cpu;
+		cpu->mem = mem;
 		cpu->Reset();
 		ppu->Reset();
 		shouldRun = false;
@@ -87,6 +89,8 @@ int main(int argc, char **argv)
 	ImGui_ImplOpenGL3_Init("#version 150");
 
 	Keyboard::Init(window);
+	Keyboard::s_mem = mem;
+	Keyboard::s_cpu = cpu;
 
 	int major, minor, version;
 	glfwGetVersion(&major, &minor, &version);

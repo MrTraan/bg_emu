@@ -6,6 +6,9 @@
 #include <imgui/imgui.h>
 #include <imgui/imgui_impl_glfw.h>
 
+Memory * Keyboard::s_mem = nullptr;
+Cpu * Keyboard::s_cpu = nullptr;
+
 void key_callback(GLFWwindow* window,
                   int key,
                   int scancode,
@@ -39,6 +42,38 @@ void Keyboard::Update() {
 }
 
 void Keyboard::RegisterKeyPress(int key) {
+	if (key == eKey::KEY_A) {
+		s_mem->inputMask = BIT_UNSET(s_mem->inputMask, eGameBoyKeyValue::GB_KEY_A);
+		s_cpu->RaiseInterupt(4);
+	}
+	if (key == eKey::KEY_S) {
+		s_mem->inputMask = BIT_UNSET(s_mem->inputMask, eGameBoyKeyValue::GB_KEY_B);
+		s_cpu->RaiseInterupt(4);
+	}
+	if (key == eKey::KEY_UP) {
+		s_mem->inputMask = BIT_UNSET(s_mem->inputMask, eGameBoyKeyValue::GB_KEY_UP);
+		s_cpu->RaiseInterupt(4);
+	}
+	if (key == eKey::KEY_DOWN) {
+		s_mem->inputMask = BIT_UNSET(s_mem->inputMask, eGameBoyKeyValue::GB_KEY_DOWN);
+		s_cpu->RaiseInterupt(4);
+	}
+	if (key == eKey::KEY_LEFT) {
+		s_mem->inputMask = BIT_UNSET(s_mem->inputMask, eGameBoyKeyValue::GB_KEY_LEFT);
+		s_cpu->RaiseInterupt(4);
+	}
+	if (key == eKey::KEY_RIGHT) {
+		s_mem->inputMask = BIT_UNSET(s_mem->inputMask, eGameBoyKeyValue::GB_KEY_RIGHT);
+		s_cpu->RaiseInterupt(4);
+	}
+	if (key == eKey::KEY_ENTER) {
+		s_mem->inputMask = BIT_UNSET(s_mem->inputMask, eGameBoyKeyValue::GB_KEY_START);
+		s_cpu->RaiseInterupt(4);
+	}
+	if (key == eKey::KEY_RIGHT_SHIFT) {
+		s_mem->inputMask = BIT_UNSET(s_mem->inputMask, eGameBoyKeyValue::GB_KEY_SELECT);
+		s_cpu->RaiseInterupt(4);
+	}
 	for (int &keyDown : Keyboard::keyDowns) {
 		if (keyDown == KEY_NONE) {
 			keyDown = key;
@@ -55,6 +90,30 @@ void Keyboard::RegisterKeyPress(int key) {
 }
 
 void Keyboard::RegisterKeyRelease(int key) {
+	if (key == eKey::KEY_A) {
+		s_mem->inputMask = BIT_SET(s_mem->inputMask, eGameBoyKeyValue::GB_KEY_A);
+	}
+	if (key == eKey::KEY_S) {
+		s_mem->inputMask = BIT_SET(s_mem->inputMask, eGameBoyKeyValue::GB_KEY_B);
+	}
+	if (key == eKey::KEY_UP) {
+		s_mem->inputMask = BIT_SET(s_mem->inputMask, eGameBoyKeyValue::GB_KEY_UP);
+	}
+	if (key == eKey::KEY_DOWN) {
+		s_mem->inputMask = BIT_SET(s_mem->inputMask, eGameBoyKeyValue::GB_KEY_DOWN);
+	}
+	if (key == eKey::KEY_LEFT) {
+		s_mem->inputMask = BIT_SET(s_mem->inputMask, eGameBoyKeyValue::GB_KEY_LEFT);
+	}
+	if (key == eKey::KEY_RIGHT) {
+		s_mem->inputMask = BIT_SET(s_mem->inputMask, eGameBoyKeyValue::GB_KEY_RIGHT);
+	}
+	if (key == eKey::KEY_ENTER) {
+		s_mem->inputMask = BIT_SET(s_mem->inputMask, eGameBoyKeyValue::GB_KEY_START);
+	}
+	if (key == eKey::KEY_RIGHT_SHIFT) {
+		s_mem->inputMask = BIT_SET(s_mem->inputMask, eGameBoyKeyValue::GB_KEY_SELECT);
+	}
 	for (int &keyDown : Keyboard::keyDowns) {
 		if (keyDown == key) {
 			// We could break here but at least we make sure to clean if a key

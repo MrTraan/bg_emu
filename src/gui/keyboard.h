@@ -1,8 +1,10 @@
 #pragma once
 
 #include <glad/glad.h>
-
 #include <GLFW/glfw3.h>
+#include "../gb_emu.h"
+#include "../memory.h"
+#include "../cpu.h"
 
 class Window;
 
@@ -22,8 +24,22 @@ enum eKey {
 	KEY_RIGHT = GLFW_KEY_RIGHT,
 
 	KEY_LEFT_SHIFT = GLFW_KEY_LEFT_SHIFT,
+	KEY_RIGHT_SHIFT = GLFW_KEY_RIGHT_SHIFT,
 	KEY_ESCAPE = GLFW_KEY_ESCAPE,
-	KEY_SPACE = GLFW_KEY_SPACE
+	KEY_SPACE = GLFW_KEY_SPACE,
+	KEY_ENTER = GLFW_KEY_ENTER
+};
+
+enum eGameBoyKeyValue : byte {
+	GB_KEY_A = 0,
+	GB_KEY_B = 1,
+	GB_KEY_SELECT = 2,
+	GB_KEY_START = 3,
+	
+	GB_KEY_RIGHT = 4,
+	GB_KEY_LEFT = 5,
+	GB_KEY_UP = 6,
+	GB_KEY_DOWN = 7,
 };
 
 class Keyboard {
@@ -36,6 +52,9 @@ class Keyboard {
 
 	static bool IsKeyDown(eKey key);
 	static bool IsKeyPressed(eKey key);
+	
+	static Memory * s_mem;
+	static Cpu * s_cpu;
 
    private:
 	static int keyDowns[MAX_CONCURRENT_KEY_DOWN];
