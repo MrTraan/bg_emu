@@ -46,6 +46,31 @@ int Cpu::ExecuteNextOPCode() {
 	return ticksUsed + additionnalTicks;
 }
 
+void Cpu::UpdateTimer(int clock) {
+	static int totalclock = 0;
+	byte tac = mem->highRAM[TAC - 0xFF00];
+	byte frequency = tac & 3;
+	constexpr int threshold[4] = {64, 1, 4, 16};
+
+	if (!BIT_IS_SET(tac, 2))
+		return;
+
+	totalclock += clock;
+	if (totalclock > threshold[frequency])
+	{
+		totalclock = 0;
+		int tima = (int)(mem->highRAM[TIMA - 0xFF00]);
+		if (tima == 0xFF)
+		{
+			RaiseInterupt(3);
+			mem->highRAM[TIMA - 0xFF00] = mem->highRAM[TMA-0xFF00];
+		}
+		else
+		{
+			mem->highRAM[TIMA - 0xFF00]++;
+		}
+	}
+}
 
 void Cpu::Add(Register8& reg, byte val, bool useCarry) {
 	byte  valReg = reg.Get();
@@ -233,7 +258,7 @@ int Cpu::ProcessInterupts() {
 			if (BIT_IS_SET(mask, i) && BIT_IS_SET(enabledMask, i)) {
 				if (!interuptsOn && isOnHalt) {
 					isOnHalt = false;
-					
+
 				}
 				interuptsOn = false;
 				isOnHalt = false;

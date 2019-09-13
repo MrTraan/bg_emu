@@ -57,7 +57,7 @@ struct Cpu {
 	Memory* mem;
 
 	int additionnalTicks;
-	
+	int divider;
 	int speed; // Will be useful later for GBC
 
 	bool interuptsEnabled = true;
@@ -65,8 +65,6 @@ struct Cpu {
 	bool isOnHalt = false;
 
 	bool IsCGB() { return false; }
-
-	// int divider
 
 	// Initialize CPU with default values
 	Cpu(Memory* _mem) : mem(_mem) {
@@ -83,6 +81,7 @@ struct Cpu {
 		F.mask = 0xF0;
 
 		speed = 1;
+		divider = 0;
 		additionnalTicks = 0;
 		interuptsEnabled = true;
 		interuptsOn = true;
@@ -108,6 +107,7 @@ struct Cpu {
 	void RaiseInterupt(byte code);
 	int ProcessInterupts();
 	void Halt();
+	void UpdateTimer(int cycles);
 
 	void Add16(Register16& reg, uint16 val);
 	void Add16Signed(Register16& reg, int8 val);

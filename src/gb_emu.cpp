@@ -73,7 +73,7 @@ int main(int argc, char **argv)
 	if (cart == nullptr) {
 		return 1;
 	}
-	
+
 	Window window;
 
 	mem = new Memory(cart);
@@ -102,7 +102,7 @@ int main(int argc, char **argv)
 	printf("OpenGL version: %s\n", glGetString(GL_VERSION));
 	glEnable(GL_MULTISAMPLE);
 	glEnable(GL_DEBUG_OUTPUT);
-	glDebugMessageCallback(MessageCallback, 0);
+	// glDebugMessageCallback(MessageCallback, 0);
 	glEnable(GL_CULL_FACE);
 	glCullFace(GL_BACK);
 	glfwSetDropCallback(window.GetGlfwWindow(), drop_callback);
@@ -113,7 +113,7 @@ int main(int argc, char **argv)
 	unsigned long PCBreakpoint = 0x0;
 	int num_instructions = 0;
 
-	shouldRun = false; 
+	shouldRun = false;
 	bool showRomCode = false;
 	while (!window.ShouldClose()) {
 		double startTime = glfwGetTime();
@@ -128,7 +128,7 @@ int main(int argc, char **argv)
 		//if (show_demo_window) {
 		//	ImGui::ShowDemoWindow(&show_demo_window);
 		//}
-		
+
 		ppu->frontBuffer->Draw();
 
 		DrawDebugWindow(*cpu, *mem, showRomCode);
@@ -154,22 +154,43 @@ int main(int argc, char **argv)
         if (ImGui::Button(showRomCode ? "Hide ROM Code" : "Show ROM Code")) {
 			showRomCode = !showRomCode;
 		}
-        
+
 		ImGui::Image((void*)(ppu->frontBuffer->textureHandler), ImVec2(GB_SCREEN_WIDTH, GB_SCREEN_HEIGHT), ImVec2(0,0), ImVec2(1,1), ImVec4(1.0f,1.0f,1.0f,1.0f), ImVec4(1.0f,1.0f,1.0f,0.5f));
 
 		int totalClocksThisFrame = 0;
-		while (totalClocksThisFrame < GBEMU_CLOCK_SPEED / 60 && (shouldRun || shouldStep)) {
+		int maxClocksThisFrame = GBEMU_CLOCK_SPEED / 60;
+		if ( Keyboard::IsKeyDown( eKey::KEY_SPACE ) ) {
+			maxClocksThisFrame *= 10;
+		}
+		static int subClock = 0;
+		static int divClock = 0;
+		while (totalClocksThisFrame < maxClocksThisFrame && (shouldRun || shouldStep)) {
 			int clocks = cpu->ExecuteNextOPCode();
+			subClock += clocks;
 			num_instructions++;
 			totalClocksThisFrame += clocks;
 			ppu->Update(clocks);
+			if ( subClock >= 16 ) {
+				divClock += 1;
+				if (divClock >= 16)
+				{
+					divClock = 0;
+					byte div = mem->Read(DIV);
+					if (div == 255)
+						mem->Write(DIV, 0);
+					else
+						mem->Write(DIV, div+1);
+				}
+				subClock -= 16;
+				cpu->UpdateTimer(1);
+			}
 			totalClocksThisFrame += cpu->ProcessInterupts();
 			if (PCBreakpoint == cpu->PC) {
 				shouldRun = false;
 			}
 			shouldStep = false;
 		}
-            
+
 
 		ImGui::Render();
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());

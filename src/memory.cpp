@@ -124,7 +124,7 @@ byte Memory::Read(uint16 addr) {
 		else {
 			return ReadHighRam(addr);
 		}
-		
+
 	}
 	}
 	return 0x0;
@@ -205,19 +205,14 @@ void Memory::WriteHighRam(uint16 addr, byte value) {
 
 	switch (lowPart) {
 	case 0x02:
-		//DEBUG_BREAK; // Serial transfer control 
+		//DEBUG_BREAK; // Serial transfer control
 		break;
 	case 0x04:
-		DEBUG_BREAK; // divider register
-		break;
 	case 0x05:
 	case 0x06:
-		// TIMA and TMA (timers)
-		highRAM[lowPart] = value;
-		break;
 	case 0x07:
-		// Starting or stopping the timer
-		//DEBUG_BREAK;
+		// TIMA and TMA and TAC (timers)
+		highRAM[lowPart] = value;
 		break;
 	case 0x41:
 		highRAM[0x41] = value | 0x80;

@@ -49,6 +49,7 @@ public:
 
 		glfwMakeContextCurrent(this->glWindow);
 		glfwSetFramebufferSizeCallback(this->glWindow, framebufferSizeCallback);
+		glfwSwapInterval(1);
 
 		// glad: load all OpenGL function pointers
 		if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))

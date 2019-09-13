@@ -3,6 +3,11 @@
 #include "gb_emu.h"
 #include "rom.h"
 
+#define TIMA 0xff05
+#define TMA 0xff06
+#define TAC 0xff07
+#define DIV 0xff04
+
 struct Memory {
 	Memory(Cartridge * _cart);
 	void Reset();
@@ -17,7 +22,7 @@ struct Memory {
 	byte WorkRamBankIndex;
 
 	byte OAM[0xa0];
-	
+
 	byte inputMask;
 
 	bool hdmaActive = false;
@@ -27,6 +32,8 @@ struct Memory {
 	byte Read(uint16 addr);
 	void WriteHighRam(uint16 addr, byte value);
 	byte ReadHighRam(uint16 addr);
+
+
 
 	void HDMATransfer();
 	void DMATransfer(byte value);
