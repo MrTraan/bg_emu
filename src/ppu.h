@@ -12,6 +12,9 @@ struct Ppu {
 	ScreenBuffer * frontBuffer;
 	ScreenBuffer * backBuffer;
 
+	static bool debugDrawTiles;
+	static bool debugDrawSprites;
+
 	int scanlineCounter = 456;
 	int lastDrawnScanLine = 0;
 

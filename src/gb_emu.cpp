@@ -67,7 +67,7 @@ int main(int argc, char **argv)
 		romPath = argv[1];
 	} else {
         //romPath = "../../../roms/cpu_instrs.gb";
-        romPath = "../../../roms/tetris.gb";
+        romPath = "../roms/tetris.gb";
 	}
 	cart = Cartridge::LoadFromFile(romPath);
 	if (cart == nullptr) {
@@ -95,9 +95,6 @@ int main(int argc, char **argv)
 	glfwGetVersion(&major, &minor, &version);
 	const GLubyte* vendor = glGetString(GL_VENDOR);
 	printf("Vendor name: %s\n", vendor);
-	std::string sVendor = (char*)vendor;
-	std::string sNvidia = "NVIDIA";
-	bool isGraphicCardNvidia = sVendor.find(sNvidia) != std::string::npos;
 	printf("Glfw version: %d.%d.%d\n", major, minor, version);
 	printf("OpenGL version: %s\n", glGetString(GL_VERSION));
 	glEnable(GL_MULTISAMPLE);
@@ -106,7 +103,6 @@ int main(int argc, char **argv)
 	glEnable(GL_CULL_FACE);
 	glCullFace(GL_BACK);
 	glfwSetDropCallback(window.GetGlfwWindow(), drop_callback);
-
 
 	bool show_demo_window = true;
 
@@ -154,8 +150,6 @@ int main(int argc, char **argv)
         if (ImGui::Button(showRomCode ? "Hide ROM Code" : "Show ROM Code")) {
 			showRomCode = !showRomCode;
 		}
-
-		ImGui::Image((void*)(ppu->frontBuffer->textureHandler), ImVec2(GB_SCREEN_WIDTH, GB_SCREEN_HEIGHT), ImVec2(0,0), ImVec2(1,1), ImVec4(1.0f,1.0f,1.0f,1.0f), ImVec4(1.0f,1.0f,1.0f,0.5f));
 
 		int totalClocksThisFrame = 0;
 		int maxClocksThisFrame = GBEMU_CLOCK_SPEED / 60;
@@ -264,6 +258,9 @@ void DrawDebugWindow(Cpu& cpu, Memory& mem, bool showRomCode) {
 	ImGui::Separator();
 	ImGui::Text("Last instruction: %s", cpu.lastInstructionName);
 	ImGui::Text("Next instruction: %s", Cpu::s_instructionsNames[mem.Read(cpu.PC)]);
+	ImGui::Checkbox( "Draw tiles", &(Ppu::debugDrawTiles) );
+	ImGui::SameLine();
+	ImGui::Checkbox( "Draw sprites", &(Ppu::debugDrawSprites) );
 
 
 	if (showRomCode) {

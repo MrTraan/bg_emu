@@ -113,11 +113,11 @@ void Ppu::Update(int cycles) {
 void Ppu::DrawScanLine(int scanline) {
 	byte control = mem->Read(0xff40);
 
-	if (cpu->IsCGB() || BIT_IS_SET(control, 0)) {
+	if ((cpu->IsCGB() || BIT_IS_SET(control, 0)) && debugDrawTiles) {
 		DrawTiles(scanline, control);
 	}
 
-	if (BIT_IS_SET(control, 1)) {
+	if (BIT_IS_SET(control, 1) && debugDrawSprites) {
 		DrawSprites(scanline, control);
 	}
 }
@@ -250,7 +250,7 @@ void Ppu::DrawSprites(int scanline, byte control) {
 		bool useBank1 = BIT_IS_SET(spriteAttr, 3);
 		bool hflip = BIT_IS_SET(spriteAttr, 5);
 		bool vflip = BIT_IS_SET(spriteAttr, 6);
-		bool priority = BIT_IS_SET(spriteAttr, 7);
+		bool priority = !BIT_IS_SET(spriteAttr, 7); // TODO: unused for now
 
 		uint16 bankOffset = cpu->IsCGB() && useBank1 ? 0x2000 : 0x0;
 
@@ -259,7 +259,7 @@ void Ppu::DrawSprites(int scanline, byte control) {
 			line = ySize - line - 1;
 		}
 
-		uint16 dataAddr = ((uint16)tileLocation * 16) + line * 2 + bankOffset;
+		uint16 dataAddr = ((uint16)tileLocation * 16) + (line * 2) + bankOffset;
 		byte spriteData1 = mem->VRAM[dataAddr];
 		byte spriteData2 = mem->VRAM[dataAddr + 1];
 
@@ -274,7 +274,7 @@ void Ppu::DrawSprites(int scanline, byte control) {
 				continue;
 			}
 
-			byte colorBit = hflip ? (byte)((int8)(colorBit - 7) * -1) : tilePixel;
+			byte colorBit = hflip ? (byte)((int8)(tilePixel - 7) * -1) : tilePixel;
 			byte colorIndex = (BIT_VALUE(spriteData2, colorBit) << 1) | BIT_VALUE(spriteData1, colorBit);
 
 			if (colorIndex == 0) {
@@ -287,6 +287,11 @@ void Ppu::DrawSprites(int scanline, byte control) {
 			} else {
 				PutPixel((byte)pixel, (byte)scanline, spriteAttr, colorIndex, BIT_IS_SET(spriteAttr, 4) ? palette2 : palette1);
 			}
+
+			minX[pixel] = xPos + 100;
 		}
 	}
 }
+
+bool Ppu::debugDrawSprites = true;
+bool Ppu::debugDrawTiles = true;
