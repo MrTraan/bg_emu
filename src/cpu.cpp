@@ -33,7 +33,12 @@ int Cpu::ExecuteNextOPCode() {
 	additionnalTicks = 0;
 	lastInstructionName = s_instructionsNames[opcode];
 	//printf("%s\n", s_instructionsNames[opcode]);
-	//printf("[0x%02x]: 0x%04x\n", opcode, PC - 1);
+	//static bool startLogging = false;
+	//if ( PC - 1 == 0x100 ) {
+	//	startLogging = true;
+	//}
+	//if (startLogging)
+	//	printf("0x%02x 0x%04x\n", opcode, PC - 1);
 
 	InstructionPtr op = s_instructions[opcode];
 	if (op == nullptr) {
@@ -47,23 +52,32 @@ int Cpu::ExecuteNextOPCode() {
 }
 
 void Cpu::UpdateTimer(int clock) {
-	static int totalclock = 0;
+	divider += clock;
+	if (divider >= 255) {
+		divider -= 255;
+		byte div = mem->Read(DIV);
+		if (div == 255)
+			mem->highRAM[DIV - 0xFF00] = 0;
+		else
+			mem->highRAM[DIV - 0xFF00]++;
+	}
+
 	byte tac = mem->highRAM[TAC - 0xFF00];
 	byte frequency = tac & 3;
-	constexpr int threshold[4] = {64, 1, 4, 16};
+	constexpr int threshold[4] = {1024, 16, 64, 256};
 
 	if (!BIT_IS_SET(tac, 2))
 		return;
 
-	totalclock += clock;
-	if (totalclock > threshold[frequency])
+	clockCounter += clock;
+	if (clockCounter > threshold[frequency])
 	{
-		totalclock = 0;
-		int tima = (int)(mem->highRAM[TIMA - 0xFF00]);
+		clockCounter -= threshold[frequency];
+		byte tima = mem->highRAM[TIMA - 0xFF00];
 		if (tima == 0xFF)
 		{
-			RaiseInterupt(3);
 			mem->highRAM[TIMA - 0xFF00] = mem->highRAM[TMA-0xFF00];
+			RaiseInterupt(2);
 		}
 		else
 		{
@@ -224,7 +238,8 @@ uint16 Cpu::PopStack() {
 }
 
 void Cpu::Halt() {
-} // TODO: don't know what to do yet with that
+	isOnHalt = true;
+}
 
 void Cpu::RaiseInterupt(byte code) {
 	byte mask = mem->Read(0xff0f);
@@ -246,20 +261,18 @@ int Cpu::ProcessInterupts() {
 		interuptsEnabled = false;
 		return 0;
 	}
-	if (!interuptsOn) {
+	if (!interuptsOn && !isOnHalt) {
 		return 0;
 	}
 
 	byte mask = mem->Read(0xff0f);
 	byte enabledMask = mem->Read(0xffff);
 
-	if (mask != 0) {
-		for (int i = 0; i < 5; i++) {
-			if (BIT_IS_SET(mask, i) && BIT_IS_SET(enabledMask, i)) {
-				if (!interuptsOn && isOnHalt) {
-					isOnHalt = false;
-
-				}
+	for (byte i = 0; i < 5; i++) {
+		if (BIT_IS_SET(mask, i) && BIT_IS_SET(enabledMask, i)) {
+			if (!interuptsOn && isOnHalt) {
+				isOnHalt = false;
+			} else {
 				interuptsOn = false;
 				isOnHalt = false;
 				mask = BIT_UNSET(mask, i);
@@ -267,8 +280,8 @@ int Cpu::ProcessInterupts() {
 
 				PushStack(PC);
 				PC = interruptAddresses[i];
-				return 20;
 			}
+			return 20;
 		}
 	}
 
@@ -360,8 +373,9 @@ void Cpu::Inst0x0f() {
 }
 void Cpu::Inst0x10() {
 	// STOP 0
-	Halt();
+	//Halt();
 	PopPC(); // Read next byte, because this instruction is actualy 2 bytes : 0x10 0x00, no idea why
+	// TODO: Game boy color change speed
 }
 void Cpu::Inst0x11() {
 	// LD DE, d16

@@ -17,20 +17,24 @@ Cartridge * Cartridge::LoadFromFile(const char * path) {
 	fread(cartData, size, 1, fh);
 	fclose(fh);
 
+	// TODO: This would crash on an invalid file
 	byte cartType = cartData[0x147];
 
 	Cartridge * cart = nullptr;
 	if (cartType == 0) {
 		ROM * rom = new ROM();
-		memcpy(rom->data, cartData, sizeof(rom->data));
+		assert( sizeof(rom->data) >= size );
+		memcpy(rom->data, cartData, size);
 		cart = rom;
-	} else if (cartType == 0x01) {
+	} else if (cartType <= 0x03) {
 		MBC1 * rom = new MBC1();
-		memcpy(rom->data, cartData, sizeof(rom->data));
+		assert( sizeof(rom->data) >= size );
+		memcpy(rom->data, cartData, size);
 		cart = rom;
 	} else if (cartType == 0x1b) {
 		MBC5 * rom = new MBC5();
-		memcpy(rom->data, cartData, sizeof(rom->data));
+		assert( sizeof(rom->data) >= size );
+		memcpy(rom->data, cartData, size);
 		cart = rom;
 	} else {
 		DEBUG_BREAK;

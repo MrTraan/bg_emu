@@ -2,24 +2,34 @@
 #include "ppu.h"
 #include "cpu.h"
 #include "memory.h"
+#include <imgui/imgui.h>
 
 constexpr int lcdMode1Bounds = 144;
 constexpr int lcdMode2Bounds = 376;
 constexpr int lcdMode3Bounds = 204;
 
-static Pixel paletteData[4] = {
-	// Greenishy pallete, like the original shitty gameboy screen
-	{0x9B, 0xBC, 0x0F},
-	{0x8B, 0xAC, 0x0F},
-	{0x30, 0x62, 0x30},
-	{0x0F, 0x38, 0x0F},
-	/*
-	// Grey scale palette
-	{0xFF, 0xFF, 0xFF},
-	{0xCC, 0xCC, 0xCC},
-	{0x77, 0x77, 0x77},
-	{0x00, 0x00, 0x00},
-	*/
+static Pixel paletteData[3][4] = {
+	{
+		// Greenishy pallete, like the original shitty gameboy screen
+		{0x9B, 0xBC, 0x0F},
+		{0x8B, 0xAC, 0x0F},
+		{0x30, 0x62, 0x30},
+		{0x0F, 0x38, 0x0F},
+	},
+	{
+		// Grey scale palette
+		{0xFF, 0xFF, 0xFF},
+		{0xCC, 0xCC, 0xCC},
+		{0x77, 0x77, 0x77},
+		{0x00, 0x00, 0x00},
+	},
+	{
+		// Blueish palette
+		{0xE0, 0xF8, 0xD0},
+		{0x88, 0xC0, 0x70},
+		{0x34, 0x68, 0x56},
+		{0x08, 0x18, 0x20},
+	},
 };
 
 bool Ppu::IsLcdOn() {
@@ -130,11 +140,10 @@ void Ppu::PutPixel(byte x, byte y, byte tileAttr, byte colorIndex, byte palette)
 		byte highBit = colorIndex << 1 | 1;
 		byte lowBit = colorIndex << 1;
 		byte column = (BIT_VALUE(palette, highBit) << 1) | BIT_VALUE(palette, lowBit);
-		Pixel & pixel = paletteData[column];
+		Pixel & pixel = paletteData[selectedPalette][column];
 		backBuffer->SetPixel(x, y, pixel);
 	}
 }
-
 
 void Ppu::SwapBuffers() {
 	ScreenBuffer* tmp = frontBuffer;
@@ -172,7 +181,7 @@ void Ppu::DrawTiles(int scanline, byte control) {
 	byte palette = mem->Read(0xff47);
 
 	byte tileScanLine[GB_SCREEN_WIDTH];
-	memset(tileScanLine, 0, GB_SCREEN_WIDTH);
+	memset(tileScanLine, 0, sizeof(tileScanLine));
 	// Draw one horizontal line
 	for (byte x = 0; x < GB_SCREEN_WIDTH; x++) {
 		byte xPos = (usingWindow && x >= windowX) ? x - windowX : x + scrollX;
@@ -212,7 +221,7 @@ void Ppu::DrawTiles(int scanline, byte control) {
 		if (cpu->IsCGB() && hflip) {
 			xPos = 7 - xPos;
 		}
-		byte colorBit = (byte)(((int8)(xPos % 8) - 7) * -1);
+		byte colorBit = (int8)((xPos % 8) - 7) * -1;
 		byte colorIndex = (BIT_VALUE(tileData2, colorBit) << 1) | BIT_VALUE(tileData1, colorBit);
 		// Draw if sprite has priority of if no pixel has been drawn there
 		if (priority || tileScanLine[x] == 0) {
@@ -233,7 +242,7 @@ void Ppu::DrawSprites(int scanline, byte control) {
 	for (uint16 sprite = 0; sprite < 40; sprite++) {
 		uint16 index = sprite * 4;
 
-		int yPos = mem->Read(0xfe00 + index) - 16;
+		int yPos = (int)(mem->Read(0xfe00 + index)) - 16;
 		if (scanline < yPos || scanline >= (yPos + ySize)) {
 			continue;
 		}
@@ -243,7 +252,7 @@ void Ppu::DrawSprites(int scanline, byte control) {
 		}
 		lineSprites++;
 
-		int xPos = mem->Read(0xfe00 + index + 1) - 8;
+		int xPos = (int)(mem->Read(0xfe00 + index + 1)) - 8;
 		int tileLocation = mem->Read(0xfe00 + index + 2);
 		int spriteAttr = mem->Read(0xfe00 + index + 3);
 
@@ -291,6 +300,18 @@ void Ppu::DrawSprites(int scanline, byte control) {
 			minX[pixel] = xPos + 100;
 		}
 	}
+}
+
+void Ppu::DebugDraw() {
+	//ImGui::Image((void*)(ppu->frontBuffer->textureHandler), ImVec2(GB_SCREEN_WIDTH, GB_SCREEN_HEIGHT), ImVec2(0,0), ImVec2(1,1), ImVec4(1.0f,1.0f,1.0f,1.0f), ImVec4(1.0f,1.0f,1.0f,0.5f));
+	const char * palettesNames[] = { "Green", "Grey", "Blue" };
+	ImGui::Combo("Palette theme", &selectedPalette, palettesNames, 3);
+	ImGui::Checkbox( "Draw tiles", &(Ppu::debugDrawTiles) );
+	ImGui::SameLine();
+	ImGui::Checkbox( "Draw sprites", &(Ppu::debugDrawSprites) );
+}
+
+void Ppu::DrawTilesetToTexture(Pixel* texture, int width, int height) {
 }
 
 bool Ppu::debugDrawSprites = true;

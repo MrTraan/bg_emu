@@ -29,7 +29,7 @@ public:
 
 class MBC1 : public Cartridge {
 public:
-	byte data[0x10000];
+	byte data[0x80000];
 	uint16 romBank = 1;
 	bool romBanking = false;
 
@@ -53,7 +53,7 @@ public:
 	uint16 romBank = 1;
 	bool romBanking = false;
 
-	byte ram[0x8000];
+	byte ram[0x20000];
 	uint16 ramBank = 1;
 	bool ramEnabled = false;
 	

@@ -16,7 +16,7 @@
 #include "gui/keyboard.h"
 #include "gui/screen_buffer.h"
 
-void DrawDebugWindow(Cpu& cpu, Memory& mem, bool showRomCode);
+void DrawDebugWindow();
 
 void GLAPIENTRY
 MessageCallback(GLenum source,
@@ -36,27 +36,35 @@ MessageCallback(GLenum source,
 
 static MemoryEditor mem_edit;
 static Cartridge * cart;
-static Memory * mem;
-static Cpu * cpu;
-static Ppu * ppu;
-static bool shouldRun = false;
+static Memory mem;
+static Cpu cpu;
+static Ppu ppu;
+static bool shouldRun = true;
+static bool shouldStep = false;
+static int PCBreakpoint = -1;
+
+static void reset( const char * cartridgePath ) {
+	if ( cart != nullptr ) {
+		delete cart;
+	}
+	cart = Cartridge::LoadFromFile(cartridgePath);
+	mem.cart = cart;
+	mem.cpu = &cpu;
+	cpu.mem = &mem;
+	ppu.mem = &mem;
+	ppu.cpu = &cpu;
+
+	Keyboard::s_mem = &mem;
+	Keyboard::s_cpu = &cpu;
+
+	mem.Reset();
+	cpu.Reset();
+	ppu.Reset();
+}
 
 void drop_callback(GLFWwindow * window, int count, const char ** paths) {
 	if (count == 1) {
-		delete mem;
-		delete cart;
-		delete ppu;
-
-		cart = Cartridge::LoadFromFile(paths[0]);
-		mem = new Memory(cart);
-		ppu = new Ppu(mem, cpu);
-
-		Keyboard::s_mem = mem;
-		Keyboard::s_cpu = cpu;
-		cpu->mem = mem;
-		cpu->Reset();
-		ppu->Reset();
-		shouldRun = false;
+		reset( paths[0] );
 	}
 }
 
@@ -69,16 +77,12 @@ int main(int argc, char **argv)
         //romPath = "../../../roms/cpu_instrs.gb";
         romPath = "../roms/tetris.gb";
 	}
-	cart = Cartridge::LoadFromFile(romPath);
+	reset(romPath);
 	if (cart == nullptr) {
 		return 1;
 	}
 
 	Window window;
-
-	mem = new Memory(cart);
-	cpu = new Cpu(mem);
-	ppu = new Ppu(mem, cpu);
 
 	// Setup imgui
 	ImGui::CreateContext();
@@ -88,8 +92,6 @@ int main(int argc, char **argv)
 	ImGui_ImplOpenGL3_Init("#version 150");
 
 	Keyboard::Init(window);
-	Keyboard::s_mem = mem;
-	Keyboard::s_cpu = cpu;
 
 	int major, minor, version;
 	glfwGetVersion(&major, &minor, &version);
@@ -104,13 +106,10 @@ int main(int argc, char **argv)
 	glCullFace(GL_BACK);
 	glfwSetDropCallback(window.GetGlfwWindow(), drop_callback);
 
-	bool show_demo_window = true;
+	bool show_demo_window = false;
 
-	unsigned long PCBreakpoint = 0x0;
-	int num_instructions = 0;
+	ppu.AllocateBuffers();
 
-	shouldRun = false;
-	bool showRomCode = false;
 	while (!window.ShouldClose()) {
 		double startTime = glfwGetTime();
 
@@ -121,65 +120,29 @@ int main(int argc, char **argv)
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
 
-		//if (show_demo_window) {
-		//	ImGui::ShowDemoWindow(&show_demo_window);
-		//}
+		if (show_demo_window) {
+			ImGui::ShowDemoWindow(&show_demo_window);
+		}
 
-		ppu->frontBuffer->Draw();
+		ppu.frontBuffer->Draw();
 
-		DrawDebugWindow(*cpu, *mem, showRomCode);
-
-		static char buf[64] = "";
-		ImGui::Text("Num instructions: %d", num_instructions);
-		ImGui::InputText("Break at PC: ", buf, 64, ImGuiInputTextFlags_CharsHexadecimal | ImGuiInputTextFlags_CharsUppercase);
-		PCBreakpoint = strtoul(buf, nullptr, 16);
-        if (ImGui::Button(shouldRun ? "Pause" : "Run")) {
-			shouldRun = !shouldRun;
-		}
-		bool shouldStep = false;
-		ImGui::SameLine();
-        if (ImGui::Button("Step")) {
-			shouldStep = true;
-		}
-		ImGui::SameLine();
-        if (ImGui::Button("Reset")) {
-			cpu->Reset();
-			mem->Reset();
-			ppu->Reset();
-		}
-        if (ImGui::Button(showRomCode ? "Hide ROM Code" : "Show ROM Code")) {
-			showRomCode = !showRomCode;
-		}
+		DrawDebugWindow();
 
 		int totalClocksThisFrame = 0;
 		int maxClocksThisFrame = GBEMU_CLOCK_SPEED / 60;
 		if ( Keyboard::IsKeyDown( eKey::KEY_SPACE ) ) {
 			maxClocksThisFrame *= 10;
 		}
-		static int subClock = 0;
-		static int divClock = 0;
 		while (totalClocksThisFrame < maxClocksThisFrame && (shouldRun || shouldStep)) {
-			int clocks = cpu->ExecuteNextOPCode();
-			subClock += clocks;
-			num_instructions++;
-			totalClocksThisFrame += clocks;
-			ppu->Update(clocks);
-			if ( subClock >= 16 ) {
-				divClock += 1;
-				if (divClock >= 16)
-				{
-					divClock = 0;
-					byte div = mem->Read(DIV);
-					if (div == 255)
-						mem->Write(DIV, 0);
-					else
-						mem->Write(DIV, div+1);
-				}
-				subClock -= 16;
-				cpu->UpdateTimer(1);
+			int clocks = 4;
+			if (!cpu.isOnHalt) {
+				clocks = cpu.ExecuteNextOPCode();
 			}
-			totalClocksThisFrame += cpu->ProcessInterupts();
-			if (PCBreakpoint == cpu->PC) {
+			totalClocksThisFrame += clocks;
+			ppu.Update(clocks);
+			cpu.UpdateTimer( clocks );
+			totalClocksThisFrame += cpu.ProcessInterupts();
+			if (PCBreakpoint == cpu.PC) {
 				shouldRun = false;
 			}
 			shouldStep = false;
@@ -196,14 +159,12 @@ int main(int argc, char **argv)
 	ImGui_ImplGlfw_Shutdown();
 	ImGui::DestroyContext();
 
+	ppu.DestroyBuffers();
 	delete cart;
-	delete mem;
-	delete ppu;
-	delete cpu;
 	return 0;
 }
 
-void DrawDebugWindow(Cpu& cpu, Memory& mem, bool showRomCode) {
+void DrawDebugWindow() {
 	ImGui::Text("%.1f FPS", ImGui::GetIO().Framerate);
 	ImGui::Columns(4, "registers");
 	ImGui::Separator();
@@ -258,10 +219,42 @@ void DrawDebugWindow(Cpu& cpu, Memory& mem, bool showRomCode) {
 	ImGui::Separator();
 	ImGui::Text("Last instruction: %s", cpu.lastInstructionName);
 	ImGui::Text("Next instruction: %s", Cpu::s_instructionsNames[mem.Read(cpu.PC)]);
-	ImGui::Checkbox( "Draw tiles", &(Ppu::debugDrawTiles) );
-	ImGui::SameLine();
-	ImGui::Checkbox( "Draw sprites", &(Ppu::debugDrawSprites) );
+	ImGui::Checkbox( "Skip bios", &(cpu.skipBios) );
 
+	static char buf[64] = "";
+	ImGui::InputText("Break at PC: ", buf, 64, ImGuiInputTextFlags_CharsHexadecimal | ImGuiInputTextFlags_CharsUppercase);
+	if (buf[0] != '\0') {
+		PCBreakpoint = strtol(buf, nullptr, 16);
+	}
+	if (ImGui::Button(shouldRun ? "Pause" : "Run")) {
+		shouldRun = !shouldRun;
+	}
+	bool shouldStep = false;
+	ImGui::SameLine();
+	if (ImGui::Button("Step")) {
+		shouldStep = true;
+	}
+	ImGui::SameLine();
+	if (ImGui::Button("Reset")) {
+		cpu.Reset();
+		mem.Reset();
+		ppu.Reset();
+	}
+	
+	static int showRomCode = false;
+	if (ImGui::Button(showRomCode ? "Hide ROM Code" : "Show ROM Code")) {
+		showRomCode = !showRomCode;
+	}
+	ImGui::SameLine();
+	static int showMemoryInspector = false;
+	if (ImGui::Button(showMemoryInspector ? "Hide Memory" : "Show Memory")) {
+		showMemoryInspector = !showMemoryInspector;
+	}
+
+	if (ImGui::TreeNode("Pixel Processing Unit")) {
+		ppu.DebugDraw();
+		ImGui::TreePop();
+	}
 
 	if (showRomCode) {
 		ImGui::Begin("ROM Code");
@@ -324,9 +317,10 @@ void DrawDebugWindow(Cpu& cpu, Memory& mem, bool showRomCode) {
 		ImGui::End();
 	}
 
-
-	mem_edit.DrawWindow("VRAM", mem.VRAM, 0x4000, 0x0);
-	mem_edit.DrawWindow("HighRAM", mem.highRAM, 0x100, 0x0);
-	mem_edit.DrawWindow("OAM", mem.OAM, 0xa0, 0x0);
-	mem_edit.DrawWindow("ROM", mem.cart->GetRawMemory(), mem.cart->GetRawMemorySize(), 0x0);
+	if (showMemoryInspector) {
+		mem_edit.DrawWindow("VRAM", mem.VRAM, 0x4000, 0x0);
+		mem_edit.DrawWindow("HighRAM", mem.highRAM, 0x100, 0x0);
+		mem_edit.DrawWindow("OAM", mem.OAM, 0xa0, 0x0);
+		mem_edit.DrawWindow("ROM", mem.cart->GetRawMemory(), mem.cart->GetRawMemorySize(), 0x0);
+	}
 }

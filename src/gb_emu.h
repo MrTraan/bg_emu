@@ -1,4 +1,5 @@
 #pragma once
+#include <stdio.h>
 
 typedef unsigned char uint8;
 typedef unsigned char byte;
@@ -32,4 +33,6 @@ constexpr int GBEMU_CLOCK_SPEED = 4194304;
 
 constexpr int GB_SCREEN_WIDTH = 160;
 constexpr int GB_SCREEN_HEIGHT = 144;
+
+#define assert( x ) if ( !x ) { fprintf(stderr, "ASSERTION FAILED: " #x "\n"); DEBUG_BREAK; }
 	

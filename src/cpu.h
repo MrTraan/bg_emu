@@ -59,20 +59,21 @@ struct Cpu {
 	int additionnalTicks;
 	int divider;
 	int speed; // Will be useful later for GBC
+	int clockCounter;
 
 	bool interuptsEnabled = true;
-	bool interuptsOn = true;
+	bool interuptsOn = false;
 	bool isOnHalt = false;
+	bool skipBios = false;
 
 	bool IsCGB() { return false; }
 
-	// Initialize CPU with default values
-	Cpu(Memory* _mem) : mem(_mem) {
-		Reset();
-	}
-
 	void Reset() {
-		PC = 0x0;
+		if (skipBios) {
+			PC = 0x100;
+		} else {
+			PC = 0x0;
+		}
 		AF.Set(0x01B0);
 		BC.Set(0);
 		DE.Set(0xFF56);
@@ -83,9 +84,10 @@ struct Cpu {
 		speed = 1;
 		divider = 0;
 		additionnalTicks = 0;
-		interuptsEnabled = true;
-		interuptsOn = true;
+		interuptsEnabled = false;
+		interuptsOn = false;
 		isOnHalt = false;
+		clockCounter = 0;
 	}
 
 	int	   ExecuteNextOPCode();
