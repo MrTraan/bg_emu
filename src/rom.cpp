@@ -23,17 +23,17 @@ Cartridge * Cartridge::LoadFromFile(const char * path) {
 	Cartridge * cart = nullptr;
 	if (cartType == 0) {
 		ROM * rom = new ROM();
-		assert( sizeof(rom->data) >= size );
+		gbemu_assert( sizeof(rom->data) >= size );
 		memcpy(rom->data, cartData, size);
 		cart = rom;
 	} else if (cartType <= 0x03) {
 		MBC1 * rom = new MBC1();
-		assert( sizeof(rom->data) >= size );
+		gbemu_assert( sizeof(rom->data) >= size );
 		memcpy(rom->data, cartData, size);
 		cart = rom;
 	} else if (cartType == 0x1b) {
 		MBC5 * rom = new MBC5();
-		assert( sizeof(rom->data) >= size );
+		gbemu_assert( sizeof(rom->data) >= size );
 		memcpy(rom->data, cartData, size);
 		cart = rom;
 	} else {

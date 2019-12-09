@@ -13,6 +13,8 @@ typedef short int16;
 #define BIT_UNSET(x, n) (x & ~(1 << n))
 #define BIT_HIGH_8(x) ((byte)((x & 0xFF00) >> 8))
 #define BIT_LOW_8(x) ((byte)(x & 0xFF))
+#define MIN(x, y) (x < y ? x : y)
+#define MAX(x, y) (x >= y ? x : y)
 
 #define GBEMU_UNSUPPORTED_PLATFORM static_assert(false, "Platform specific not handled here");
 
@@ -34,5 +36,5 @@ constexpr int GBEMU_CLOCK_SPEED = 4194304;
 constexpr int GB_SCREEN_WIDTH = 160;
 constexpr int GB_SCREEN_HEIGHT = 144;
 
-#define assert( x ) if ( !x ) { fprintf(stderr, "ASSERTION FAILED: " #x "\n"); DEBUG_BREAK; }
+#define gbemu_assert( x ) if ( !(x) ) { fprintf(stderr, "ASSERTION FAILED: " #x "\n"); DEBUG_BREAK; }
 	

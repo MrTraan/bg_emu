@@ -3,6 +3,8 @@
 #include "cpu.h"
 #include "memory.h"
 #include <imgui/imgui.h>
+#include <glad/glad.h>
+#include <GLFW/glfw3.h>
 
 constexpr int lcdMode1Bounds = 144;
 constexpr int lcdMode2Bounds = 376;
@@ -309,9 +311,104 @@ void Ppu::DebugDraw() {
 	ImGui::Checkbox( "Draw tiles", &(Ppu::debugDrawTiles) );
 	ImGui::SameLine();
 	ImGui::Checkbox( "Draw sprites", &(Ppu::debugDrawSprites) );
+	byte scrollY = mem->Read(0xff42);
+	byte scrollX = mem->Read(0xff43);
+	ImGui::Text("Scroll X %d Scroll Y %d", scrollX, scrollY);
+
+	ImGui::Checkbox( "Draw tiles", &drawBackgroundTexture );
+	if (drawBackgroundTexture) {
+		if (backgroundTexture == nullptr) {
+			backgroundTexture = new Pixel[256 * 256];
+			glGenTextures(1, &backgroundTextureHandler);
+			glBindTexture(GL_TEXTURE_2D, backgroundTextureHandler);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		}
+		DrawTilesetToTexture(backgroundTexture, 256, 256);
+		glBindTexture(GL_TEXTURE_2D, backgroundTextureHandler);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 256, 256, 0, GL_RGB, GL_UNSIGNED_BYTE, backgroundTexture );
+		ImGui::Image((void*)(backgroundTextureHandler), ImVec2(256, 256), ImVec2(0,0), ImVec2(1,1), ImVec4(1.0f,1.0f,1.0f,1.0f), ImVec4(1.0f,1.0f,1.0f,0.5f));
+	}
+	
 }
 
 void Ppu::DrawTilesetToTexture(Pixel* texture, int width, int height) {
+	byte scrollY = mem->Read(0xff42);
+	byte scrollX = mem->Read(0xff43);
+	byte control = mem->Read(0xff40);
+	uint16 tileData = 0x8800;
+	bool usingUnsigned = false;
+	if (BIT_IS_SET(control, 4)) {
+		tileData = 0x8000;
+		usingUnsigned = true;
+	}
+	uint16 backgroundMemory = 0x9800;
+	if (BIT_IS_SET(control,  3)) {
+		backgroundMemory = 0x9c00; // switching to window memory
+	}
+
+	for ( int yPos = 0; yPos < height; yPos++ ) {
+		uint16 tileRow = (uint16)(yPos / 8) * 32;
+		byte palette = mem->Read(0xff47);
+
+		// Draw one horizontal line
+		for (int x = 0; x < width; x++) {
+			byte xPos = x;
+			uint16 tileColumn = xPos / 8;
+			uint16 tileAddr = backgroundMemory + tileRow + tileColumn;
+
+			uint16 tileLocation;
+			if (usingUnsigned) {
+				int16 tileIndex = (int16)(mem->VRAM[tileAddr - 0x8000]); // @HARDCODED this should use mem->Read()
+				tileLocation = tileData + (uint16)(tileIndex * 16);
+			}
+			else {
+				int16 tileIndex = (int8)(mem->VRAM[tileAddr - 0x8000]); // @HARDCODED this should use mem->Read()
+				tileLocation = (uint16)((int)tileData + (int)((tileIndex + 128) * 16));
+			}
+
+			// Attributes used in CGB mode
+			//
+			//    Bit 0-2  Background Palette number  (BGP0-7)
+			//    Bit 3    Tile VRAM Bank number      (0=Bank 0, 1=Bank 1)
+			//    Bit 5    Horizontal Flip            (0=Normal, 1=Mirror horizontally)
+			//    Bit 6    Vertical Flip              (0=Normal, 1=Mirror vertically)
+			//    Bit 7    BG-to-OAM Priority         (0=Use OAM priority bit, 1=BG Priority)
+
+			byte tileAttr = mem->VRAM[tileAddr - 0x6000];
+			bool useBank1 = BIT_IS_SET(tileAttr, 3);
+			bool hflip = BIT_IS_SET(tileAttr, 5);
+			bool vflip = BIT_IS_SET(tileAttr, 6);
+			bool priority = BIT_IS_SET(tileAttr, 7);
+
+			uint16 bankOffset = cpu->IsCGB() && useBank1 ? 0x6000 : 0x8000;
+			byte line = cpu->IsCGB() && vflip ? ((7 - yPos) % 8) * 2 : (yPos % 8) * 2;
+
+			byte tileData1 = mem->VRAM[tileLocation + line - bankOffset];
+			byte tileData2 = mem->VRAM[tileLocation + line - bankOffset + 1];
+
+			if (cpu->IsCGB() && hflip) {
+				xPos = 7 - xPos;
+			}
+			byte colorBit = (int8)((xPos % 8) - 7) * -1;
+			byte colorIndex = (BIT_VALUE(tileData2, colorBit) << 1) | BIT_VALUE(tileData1, colorBit);
+			byte highBit = colorIndex << 1 | 1;
+			byte lowBit = colorIndex << 1;
+			byte column = (BIT_VALUE(palette, highBit) << 1) | BIT_VALUE(palette, lowBit);
+			int boundXMin = MIN( scrollX, (scrollX + GB_SCREEN_WIDTH) % width );
+			int boundYMin = MIN( scrollY, (scrollY + GB_SCREEN_HEIGHT) % height );
+			int boundXMax = MAX( scrollX, (scrollX + GB_SCREEN_WIDTH) % width );
+			int boundYMax = MAX( scrollY, (scrollY + GB_SCREEN_HEIGHT) % height );
+			if ( ( ( x == boundXMin || x == boundXMax ) && yPos >= boundYMin && yPos <= boundYMax ) ||
+				 ( ( yPos == boundYMin || yPos == boundYMax ) && x >= boundXMin && x <= boundXMax ) ) {
+				texture[ xPos + yPos * width ] = Pixel{ 0, 0, 0 };
+			} else {
+				texture[xPos + yPos * width] = paletteData[selectedPalette][column];
+			}
+		}
+	}
 }
 
 bool Ppu::debugDrawSprites = true;

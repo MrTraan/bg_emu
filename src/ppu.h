@@ -53,4 +53,7 @@ struct Ppu {
 
 	void DebugDraw();
 	void DrawTilesetToTexture(Pixel * texture, int width, int height);
+	Pixel * backgroundTexture = nullptr;
+	bool drawBackgroundTexture = true;
+	unsigned int backgroundTextureHandler = 0;
 };
