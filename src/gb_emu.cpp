@@ -7,6 +7,7 @@
 #include <imgui/imgui_impl_glfw.h>
 #include <imgui/imgui_impl_opengl3.h>
 #include <imgui/imgui_memory_editor.h>
+#include "SDL.h"
 
 #include "gb_emu.h"
 #include "cpu.h"
@@ -15,6 +16,8 @@
 #include "gui/window.h"
 #include "gui/keyboard.h"
 #include "gui/screen_buffer.h"
+#include "sound/Basic_Gb_Apu.h"
+#include "sound/Sound_Queue.h"
 
 void DrawDebugWindow();
 
@@ -37,6 +40,7 @@ MessageCallback(GLenum source,
 static MemoryEditor mem_edit;
 static Cartridge * cart;
 static Memory mem;
+static Basic_Gb_Apu apu;
 static Cpu cpu;
 static Ppu ppu;
 static bool shouldRun = true;
@@ -50,6 +54,7 @@ static void reset( const char * cartridgePath ) {
 	cart = Cartridge::LoadFromFile(cartridgePath);
 	mem.cart = cart;
 	mem.cpu = &cpu;
+	mem.apu = &apu;
 	cpu.mem = &mem;
 	ppu.mem = &mem;
 	ppu.cpu = &cpu;
@@ -106,6 +111,19 @@ int main(int argc, char **argv)
 	glCullFace(GL_BACK);
 	glfwSetDropCallback(window.GetGlfwWindow(), drop_callback);
 
+	long const sample_rate = 44100;
+
+	if(SDL_Init(SDL_INIT_AUDIO) < 0)
+		return EXIT_FAILURE;
+	atexit(SDL_Quit);
+
+	// Set sample rate and check for out of memory error
+	gbemu_assert(apu.set_sample_rate(sample_rate) == nullptr);
+
+	// Generate a few seconds of sound and play using SDL
+	Sound_Queue sound;
+	gbemu_assert(sound.start(sample_rate, 2) == nullptr);
+
 	bool show_demo_window = false;
 
 	ppu.AllocateBuffers();
@@ -128,26 +146,33 @@ int main(int argc, char **argv)
 
 		DrawDebugWindow();
 
-		int totalClocksThisFrame = 0;
+		cpu.cpuTime = 0;
 		int maxClocksThisFrame = GBEMU_CLOCK_SPEED / 60;
 		if ( Keyboard::IsKeyDown( eKey::KEY_SPACE ) ) {
 			maxClocksThisFrame *= 10;
 		}
-		while (totalClocksThisFrame < maxClocksThisFrame && (shouldRun || shouldStep)) {
+		while (cpu.cpuTime < maxClocksThisFrame && (shouldRun || shouldStep)) {
 			int clocks = 4;
 			if (!cpu.isOnHalt) {
 				clocks = cpu.ExecuteNextOPCode();
 			}
-			totalClocksThisFrame += clocks;
+			cpu.cpuTime += clocks;
 			ppu.Update(clocks);
 			cpu.UpdateTimer( clocks );
-			totalClocksThisFrame += cpu.ProcessInterupts();
+			cpu.cpuTime += cpu.ProcessInterupts();
 			if (PCBreakpoint == cpu.PC) {
 				shouldRun = false;
 			}
 			shouldStep = false;
 		}
 
+		int const buf_size = 2048;
+		static blip_sample_t buf[buf_size];
+
+		apu.end_frame(cpu.cpuTime);
+		// Play whatever samples are available
+		long count = apu.read_samples(buf, buf_size);
+		sound.write(buf, count);
 
 		ImGui::Render();
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());

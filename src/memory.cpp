@@ -2,6 +2,7 @@
 #include "gb_emu.h"
 #include "memory.h"
 #include "cpu.h"
+#include "sound/Basic_Gb_Apu.h"
 
 static byte BIOS[0x100] = {
 	0x31, 0xFE, 0xFF, 0xAF, 0x21, 0xFF, 0x9F, 0x32, 0xCB, 0x7C, 0x20, 0xFB, 0x21, 0x26, 0xFF, 0x0E,
@@ -175,10 +176,10 @@ byte Memory::ReadHighRam(uint16 addr) {
 		return columnMask | 0xc0 | val;
 	}
 	else if (addr >= 0xff10 && addr <= 0xff26) {
-//		DEBUG_BREAK; // READ SOUND
+		return apu->read_register( cpu->cpuTime, addr );
 	}
 	else if (addr >= 0xff30 && addr <= 0xff3f) {
-//		DEBUG_BREAK; // READ SOUND WAVE FORM
+		return apu->read_register( cpu->cpuTime, addr );
 	}
 	else if (addr == 0xff0f) {
 		return highRAM[0x0f] | 0xe0;
@@ -225,11 +226,13 @@ void Memory::WriteHighRam(uint16 addr, byte value) {
 		return;
 	}
 	if (addr >= 0xff10 && addr < 0xff26) {
-		//DEBUG_BREAK; // Writing to sound
+		highRAM[addr - 0xff00] = value;
+		apu->write_register( cpu->cpuTime, addr, value );
 		return;
 	}
 	if (addr >= 0xff30 && addr <= 0xff3f) {
-		//DEBUG_BREAK; // Writing to sound waveform
+		highRAM[addr - 0xff00] = value;
+		apu->write_register( cpu->cpuTime, addr, value );
 		return;
 	}
 

@@ -6,6 +6,8 @@ typedef unsigned char byte;
 typedef char int8;
 typedef unsigned short uint16;
 typedef short int16;
+typedef unsigned int uint32;
+typedef int int32;
 
 #define BIT_VALUE(x, n) ((x >> n) & 1)
 #define BIT_IS_SET(x, n) (((x >> n) & 1) == 1)

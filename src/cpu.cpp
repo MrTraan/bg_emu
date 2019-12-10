@@ -52,6 +52,7 @@ int Cpu::ExecuteNextOPCode() {
 }
 
 void Cpu::UpdateTimer(int clock) {
+	cpuTime += clock;
 	divider += clock;
 	if (divider >= 255) {
 		divider -= 255;
