@@ -52,6 +52,7 @@ static void reset( const char * cartridgePath ) {
 		delete cart;
 	}
 	cart = Cartridge::LoadFromFile(cartridgePath);
+	// TODO : Reset APU
 	mem.cart = cart;
 	mem.cpu = &cpu;
 	mem.apu = &apu;
@@ -147,6 +148,7 @@ int main(int argc, char **argv)
 		DrawDebugWindow();
 
 		cpu.cpuTime = 0;
+		cpu.timeClock = 0;
 		int maxClocksThisFrame = GBEMU_CLOCK_SPEED / 60;
 		if ( Keyboard::IsKeyDown( eKey::KEY_SPACE ) ) {
 			maxClocksThisFrame *= 10;
@@ -164,15 +166,40 @@ int main(int argc, char **argv)
 				shouldRun = false;
 			}
 			shouldStep = false;
-		}
 
-		int const buf_size = 2048;
+		}
+		//static int delay;
+		//int time = 0;
+		//if(--delay <= 0)
+		//{
+		//	delay = 12;
+
+		//	// Start a new random tone
+		//	int chan = rand() & 0x11;
+		//	apu.write_register(time, 0xff26, 0x80);
+		//	time+=4;
+		//	apu.write_register(time, 0xff25, chan ? chan : 0x11);
+		//	time+=4;
+		//	apu.write_register(time, 0xff11, 0x80);
+		//	time+=4;
+		//	int freq = (rand() & 0x3ff) + 0x300;
+		//	apu.write_register(time, 0xff13, freq & 0xff);
+		//	time+=4;
+		//	apu.write_register(time, 0xff12, 0xf1);
+		//	time+=4;
+		//	apu.write_register(time, 0xff14, (freq >> 8) | 0x80);
+		//	time+=4;
+		//}
+
+		int const buf_size = 4096;
 		static blip_sample_t buf[buf_size];
 
-		apu.end_frame(cpu.cpuTime);
-		// Play whatever samples are available
-		long count = apu.read_samples(buf, buf_size);
-		sound.write(buf, count);
+		apu.end_frame(cpu.cpuTime * APU_OVERCLOCKING);
+		if (apu.samples_avail() >= buf_size){ 
+			// Play whatever samples are available
+			long count = apu.read_samples(buf, buf_size);
+			sound.write(buf, count);
+		}
 
 		ImGui::Render();
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());

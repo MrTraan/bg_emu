@@ -61,6 +61,7 @@ struct Cpu {
 	int speed; // Will be useful later for GBC
 	int clockCounter;
 	int cpuTime;
+	int timeClock;
 
 	bool interuptsEnabled = true;
 	bool interuptsOn = false;
@@ -90,6 +91,7 @@ struct Cpu {
 		isOnHalt = false;
 		clockCounter = 0;
 		cpuTime = 0;
+		timeClock = 0;
 	}
 
 	int	   ExecuteNextOPCode();

@@ -6,6 +6,8 @@
 #ifndef BASIC_GB_APU_H
 #define BASIC_GB_APU_H
 
+constexpr int APU_OVERCLOCKING = 1;
+
 #include "Gb_Apu.h"
 #include "Multi_Buffer.h"
 

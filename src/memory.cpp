@@ -175,11 +175,8 @@ byte Memory::ReadHighRam(uint16 addr) {
 		}
 		return columnMask | 0xc0 | val;
 	}
-	else if (addr >= 0xff10 && addr <= 0xff26) {
-		return apu->read_register( cpu->cpuTime, addr );
-	}
-	else if (addr >= 0xff30 && addr <= 0xff3f) {
-		return apu->read_register( cpu->cpuTime, addr );
+	else if (addr >= 0xff10 && addr <= 0xff3f) {
+		return apu->read_register( cpu->cpuTime * APU_OVERCLOCKING, addr );
 	}
 	else if (addr == 0xff0f) {
 		return highRAM[0x0f] | 0xe0;
@@ -225,14 +222,9 @@ void Memory::WriteHighRam(uint16 addr, byte value) {
 		// You can't write here, sorry!
 		return;
 	}
-	if (addr >= 0xff10 && addr < 0xff26) {
+	else if (addr >= 0xff10 && addr <= 0xff3f) {
 		highRAM[addr - 0xff00] = value;
-		apu->write_register( cpu->cpuTime, addr, value );
-		return;
-	}
-	if (addr >= 0xff30 && addr <= 0xff3f) {
-		highRAM[addr - 0xff00] = value;
-		apu->write_register( cpu->cpuTime, addr, value );
+		apu->write_register( cpu->cpuTime * APU_OVERCLOCKING, addr, value );
 		return;
 	}
 
