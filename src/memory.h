@@ -9,14 +9,14 @@
 #define DIV 0xff04
 
 struct Cpu;
-struct Basic_Gb_Apu;
+struct Gb_Apu;
 
 struct Memory {
 	void Reset();
 
 	Cartridge * cart;
 	Cpu * cpu;
-	Basic_Gb_Apu * apu;
+	Gb_Apu * apu;
 	byte highRAM[0x100];
 	byte VRAM[0x4000];
 	byte VRAMBankIndex;

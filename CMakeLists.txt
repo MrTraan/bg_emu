@@ -49,8 +49,6 @@ WIN32
 "./src/gui/screen_buffer.h"
 "./src/gui/screen_buffer.cpp"
 
-"./src/sound/Basic_Gb_Apu.cpp"
-"./src/sound/Basic_Gb_Apu.h"
 "./src/sound/blargg_common.h"
 "./src/sound/blargg_source.h"
 "./src/sound/Blip_Buffer.cpp"

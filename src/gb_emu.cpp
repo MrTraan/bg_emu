@@ -16,31 +16,19 @@
 #include "gui/window.h"
 #include "gui/keyboard.h"
 #include "gui/screen_buffer.h"
-#include "sound/Basic_Gb_Apu.h"
+#include "sound/Gb_Apu.h"
+#include "sound/Multi_Buffer.h"
 #include "sound/Sound_Queue.h"
 
 void DrawDebugWindow();
 
-void GLAPIENTRY
-MessageCallback(GLenum source,
-	GLenum type,
-	GLuint id,
-	GLenum severity,
-	GLsizei length,
-	const GLchar* message,
-	const void* userParam)
-{
-	if (severity == GL_DEBUG_SEVERITY_NOTIFICATION)
-		return;
-	fprintf(stderr, "GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s\n",
-		(type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : ""),
-		type, severity, message);
-}
-
 static MemoryEditor mem_edit;
 static Cartridge * cart;
 static Memory mem;
-static Basic_Gb_Apu apu;
+Gb_Apu apu;
+Stereo_Buffer soundBuffer;
+Sound_Queue sound;
+
 static Cpu cpu;
 static Ppu ppu;
 static bool shouldRun = true;
@@ -52,7 +40,6 @@ static void reset( const char * cartridgePath ) {
 		delete cart;
 	}
 	cart = Cartridge::LoadFromFile(cartridgePath);
-	// TODO : Reset APU
 	mem.cart = cart;
 	mem.cpu = &cpu;
 	mem.apu = &apu;
@@ -63,6 +50,10 @@ static void reset( const char * cartridgePath ) {
 	Keyboard::s_mem = &mem;
 	Keyboard::s_cpu = &cpu;
 
+	soundBuffer.clear();
+	apu.reset();
+	sound.stop();
+	gbemu_assert(sound.start(sample_rate, 2) == nullptr);
 	mem.Reset();
 	cpu.Reset();
 	ppu.Reset();
@@ -112,20 +103,20 @@ int main(int argc, char **argv)
 	glCullFace(GL_BACK);
 	glfwSetDropCallback(window.GetGlfwWindow(), drop_callback);
 
-	long const sample_rate = 44100;
 
 	if(SDL_Init(SDL_INIT_AUDIO) < 0)
 		return EXIT_FAILURE;
 	atexit(SDL_Quit);
 
+	apu.treble_eq(-20.0); // lower values muffle it more
+	soundBuffer.bass_freq(461); // higher values simulate smaller speaker
 	// Set sample rate and check for out of memory error
-	gbemu_assert(apu.set_sample_rate(sample_rate) == nullptr);
+	apu.output(soundBuffer.center(), soundBuffer.left(), soundBuffer.right());
+	soundBuffer.clock_rate(4194304 * APU_OVERCLOCKING);
+	gbemu_assert(soundBuffer.set_sample_rate(sample_rate) == nullptr);
 
 	// Generate a few seconds of sound and play using SDL
-	Sound_Queue sound;
-	gbemu_assert(sound.start(sample_rate, 2) == nullptr);
-
-	bool show_demo_window = false;
+	bool show_demo_window = true;
 
 	ppu.AllocateBuffers();
 
@@ -148,7 +139,6 @@ int main(int argc, char **argv)
 		DrawDebugWindow();
 
 		cpu.cpuTime = 0;
-		cpu.timeClock = 0;
 		int maxClocksThisFrame = GBEMU_CLOCK_SPEED / 60;
 		if ( Keyboard::IsKeyDown( eKey::KEY_SPACE ) ) {
 			maxClocksThisFrame *= 10;
@@ -168,36 +158,15 @@ int main(int argc, char **argv)
 			shouldStep = false;
 
 		}
-		//static int delay;
-		//int time = 0;
-		//if(--delay <= 0)
-		//{
-		//	delay = 12;
-
-		//	// Start a new random tone
-		//	int chan = rand() & 0x11;
-		//	apu.write_register(time, 0xff26, 0x80);
-		//	time+=4;
-		//	apu.write_register(time, 0xff25, chan ? chan : 0x11);
-		//	time+=4;
-		//	apu.write_register(time, 0xff11, 0x80);
-		//	time+=4;
-		//	int freq = (rand() & 0x3ff) + 0x300;
-		//	apu.write_register(time, 0xff13, freq & 0xff);
-		//	time+=4;
-		//	apu.write_register(time, 0xff12, 0xf1);
-		//	time+=4;
-		//	apu.write_register(time, 0xff14, (freq >> 8) | 0x80);
-		//	time+=4;
-		//}
 
 		int const buf_size = 4096;
 		static blip_sample_t buf[buf_size];
 
-		apu.end_frame(cpu.cpuTime * APU_OVERCLOCKING);
-		if (apu.samples_avail() >= buf_size){ 
+		bool stereo = apu.end_frame(cpu.cpuTime * APU_OVERCLOCKING);
+		soundBuffer.end_frame(cpu.cpuTime * APU_OVERCLOCKING, stereo);
+		if (soundBuffer.samples_avail() >= buf_size){ 
 			// Play whatever samples are available
-			long count = apu.read_samples(buf, buf_size);
+			long count = soundBuffer.read_samples(buf, buf_size);
 			sound.write(buf, count);
 		}
 
@@ -217,6 +186,13 @@ int main(int argc, char **argv)
 }
 
 void DrawDebugWindow() {
+	static float volume = 50.0f;
+	if (ImGui::SliderFloat("Volume", &volume, 0.0f, 100.0f)) {
+		if (volume > 100.0f) {
+			volume = 100.0f;
+		}
+		apu.volume(volume / 100);
+	}
 	ImGui::Text("%.1f FPS", ImGui::GetIO().Framerate);
 	ImGui::Columns(4, "registers");
 	ImGui::Separator();
