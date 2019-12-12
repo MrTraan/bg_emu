@@ -1,6 +1,8 @@
 ﻿#include <stdio.h>
 #include <thread>
 #include <chrono>
+#include <filesystem>
+#include <iostream>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <imgui/imgui.h>
@@ -20,6 +22,7 @@
 #include "sound/Multi_Buffer.h"
 #include "sound/Sound_Queue.h"
 
+void DrawUI();
 void DrawDebugWindow();
 
 static MemoryEditor mem_edit;
@@ -65,6 +68,22 @@ void drop_callback(GLFWwindow * window, int count, const char ** paths) {
 	}
 }
 
+std::vector<std::string> romFSPaths;
+
+void parseRomPath( const char * path ) {
+	for(const auto & entry : std::filesystem::directory_iterator(path)) {
+		if ( entry.is_directory() ) {
+			parseRomPath( entry.path().string().c_str() );
+		} else {
+			std::string str = entry.path().string();
+			if (str.find(FS_BASE_PATH "/") == 0) {
+				str.erase(0, strlen(FS_BASE_PATH "/"));
+			}
+			romFSPaths.push_back(str);
+		}
+	}
+}
+
 int main(int argc, char **argv)
 {
 	const char * romPath;
@@ -72,12 +91,14 @@ int main(int argc, char **argv)
 		romPath = argv[1];
 	} else {
         //romPath = "../../../roms/cpu_instrs.gb";
-        romPath = "../roms/tetris.gb";
+        romPath = FS_BASE_PATH "/roms/Pokemon_Bleue.gb";
 	}
 	reset(romPath);
 	if (cart == nullptr) {
 		return 1;
 	}
+
+	parseRomPath( FS_BASE_PATH "/roms" );
 
 	Window window;
 
@@ -102,7 +123,6 @@ int main(int argc, char **argv)
 	glEnable(GL_CULL_FACE);
 	glCullFace(GL_BACK);
 	glfwSetDropCallback(window.GetGlfwWindow(), drop_callback);
-
 
 	if(SDL_Init(SDL_INIT_AUDIO) < 0)
 		return EXIT_FAILURE;
@@ -136,7 +156,7 @@ int main(int argc, char **argv)
 
 		ppu.frontBuffer->Draw();
 
-		DrawDebugWindow();
+		DrawUI();
 
 		cpu.cpuTime = 0;
 		int maxClocksThisFrame = GBEMU_CLOCK_SPEED / 60;
@@ -156,7 +176,6 @@ int main(int argc, char **argv)
 				shouldRun = false;
 			}
 			shouldStep = false;
-
 		}
 
 		int const buf_size = 4096;
@@ -185,6 +204,49 @@ int main(int argc, char **argv)
 	return 0;
 }
 
+void DrawUI() {
+	static bool showDebugWindow = true;
+    if (ImGui::BeginMainMenuBar())
+    {
+        if (ImGui::BeginMenu("File"))
+        {
+			if (ImGui::BeginMenu("Open ROM"))
+			{
+				for ( const auto & str : romFSPaths ) {
+					if (ImGui::MenuItem(str.c_str())) {
+						std::string strCpy = FS_BASE_PATH "/";
+						strCpy += str;
+						reset(strCpy.c_str());
+					}
+				}
+				ImGui::EndMenu();
+			}
+            ImGui::EndMenu();
+        }
+		if (ImGui::MenuItem(shouldRun ? "Pause" : "Run")) {
+			shouldRun = !shouldRun;
+		}
+		if (ImGui::MenuItem("Reset")) {
+			// TODO: Use reset function
+			cpu.Reset();
+			mem.Reset();
+			ppu.Reset();
+		}
+		if (ImGui::MenuItem("Debug")) {
+			showDebugWindow = !showDebugWindow;
+		}
+		float framerate = ImGui::GetIO().Framerate;
+		if ( framerate >= 59.8 && framerate <= 60.0 ) {
+			// Avoid text flickering
+			framerate = 60.0;
+		}
+		ImGui::Text("%.1f FPS", framerate);
+        ImGui::EndMainMenuBar();
+    }
+	if ( showDebugWindow ) {
+		DrawDebugWindow();
+	}
+}
 void DrawDebugWindow() {
 	static float volume = 50.0f;
 	if (ImGui::SliderFloat("Volume", &volume, 0.0f, 100.0f)) {
@@ -193,7 +255,6 @@ void DrawDebugWindow() {
 		}
 		apu.volume(volume / 100);
 	}
-	ImGui::Text("%.1f FPS", ImGui::GetIO().Framerate);
 	ImGui::Columns(4, "registers");
 	ImGui::Separator();
 	ImGui::Text("A"); ImGui::NextColumn();
@@ -254,19 +315,9 @@ void DrawDebugWindow() {
 	if (buf[0] != '\0') {
 		PCBreakpoint = strtol(buf, nullptr, 16);
 	}
-	if (ImGui::Button(shouldRun ? "Pause" : "Run")) {
-		shouldRun = !shouldRun;
-	}
 	bool shouldStep = false;
-	ImGui::SameLine();
 	if (ImGui::Button("Step")) {
 		shouldStep = true;
-	}
-	ImGui::SameLine();
-	if (ImGui::Button("Reset")) {
-		cpu.Reset();
-		mem.Reset();
-		ppu.Reset();
 	}
 	
 	static int showRomCode = false;
@@ -288,13 +339,7 @@ void DrawDebugWindow() {
 		ImGui::Begin("ROM Code");
 		ImGui::BeginGroup();
 
-		ImGuiWindowFlags child_flags = false;
 		ImGui::BeginChild(ImGui::GetID((void*)(intptr_t)0));
-		if (ImGui::BeginMenuBar())
-		{
-			ImGui::TextUnformatted("abc");
-			ImGui::EndMenuBar();
-		}
 		for (int addr = 0; addr < 0x8000; addr++)
 		{
 			byte romValue = mem.Read(addr);

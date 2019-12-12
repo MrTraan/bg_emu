@@ -41,4 +41,9 @@ constexpr int GB_SCREEN_WIDTH = 160;
 constexpr int GB_SCREEN_HEIGHT = 144;
 
 #define gbemu_assert( x ) if ( !(x) ) { fprintf(stderr, "ASSERTION FAILED: " #x "\n"); DEBUG_BREAK; }
-	
+
+struct Pixel {
+	byte R;
+	byte G;
+	byte B;
+};

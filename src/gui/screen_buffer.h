@@ -2,12 +2,6 @@
 #include <string.h>
 #include "../gb_emu.h"
 
-struct Pixel {
-	byte R;
-	byte G;
-	byte B;
-};
-
 struct ScreenBuffer {
 	unsigned int VBO;
 	unsigned int VAO;

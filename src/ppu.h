@@ -2,6 +2,7 @@
 
 #include "gb_emu.h"
 #include "gui/screen_buffer.h"
+#include "simple_texture.h"
 
 struct Memory;
 struct Cpu;
@@ -24,12 +25,14 @@ struct Ppu {
 	void AllocateBuffers() {
 		frontBuffer = new ScreenBuffer;
 		backBuffer = new ScreenBuffer;
+		backgroundTexture.Allocate(256, 256);
 		Reset();
 	}
 	
 	void DestroyBuffers() {
 		delete frontBuffer;
 		delete backBuffer;
+		backgroundTexture.Destroy();
 	}
 
 	void Reset() {
@@ -37,6 +40,7 @@ struct Ppu {
 			frontBuffer->Clear();
 		if (backBuffer)
 			backBuffer->Clear();
+		backgroundTexture.Clear();
 		scanlineCounter = 456;
 		lastDrawnScanLine = 0;
 	}
@@ -49,11 +53,11 @@ struct Ppu {
 	void DrawTiles(int line, byte scanline);
 	void DrawSprites(int line, byte scanline);
 
-	void PutPixel(byte x, byte y, byte tileAttr, byte colorIndex, byte palette);
+	void PutPixel(byte x, byte y, byte tileAttr, byte colorIndex, byte palette, bool priority);
 
 	void DebugDraw();
-	void DrawTilesetToTexture(Pixel * texture, int width, int height);
-	Pixel * backgroundTexture = nullptr;
-	bool drawBackgroundTexture = true;
-	unsigned int backgroundTextureHandler = 0;
+	void DrawTilesetToTexture(SimpleTexture & texture, int width, int height);
+	SimpleTexture backgroundTexture;
+
+	bool drawBackgroundTexture = false;
 };

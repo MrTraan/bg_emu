@@ -10,6 +10,8 @@ if (WIN32)
 		set(SDL2_DIR "./lib/SDL2-2.0.10")
 endif()
 
+add_compile_definitions(FS_BASE_PATH="${CMAKE_SOURCE_DIR}/resources")
+
 set (CMAKE_CXX_STANDARD 17)
 
 set(OpenGL_GL_PREFERENCE GLVND)
@@ -33,16 +35,19 @@ add_executable (gb_emu
 WIN32
 "./src/gb_emu.cpp"
 "./src/gb_emu.h"
+"./src/gameboy.cpp"
+"./src/gameboy.h"
+"./src/opcodes.cpp"
 "./src/cpu.h"
 "./src/cpu.cpp"
 "./src/ppu.h"
 "./src/ppu.cpp"
 "./src/memory.h"
 "./src/memory.cpp"
-"./src/cb_opcodes.h"
 "./src/cb_opcodes.cpp"
 "./src/rom.h"
 "./src/rom.cpp"
+"./src/simple_texture.h"
 "./src/gui/window.h"
 "./src/gui/keyboard.h"
 "./src/gui/keyboard.cpp"
