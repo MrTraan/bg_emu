@@ -30,6 +30,8 @@ struct SimpleTexture {
 	}
 
 	void SetPixel(const Pixel & pixel, int x, int y) {
+		gbemu_assert(x < width);
+		gbemu_assert(y < height);
 		buffer[x + y * width] = pixel;
 	}
 

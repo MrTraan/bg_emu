@@ -26,6 +26,7 @@ struct Ppu {
 		frontBuffer = new ScreenBuffer;
 		backBuffer = new ScreenBuffer;
 		backgroundTexture.Allocate(256, 256);
+		tilesetTexture.Allocate(16 * 8, 24 * 8);
 		Reset();
 	}
 	
@@ -33,6 +34,7 @@ struct Ppu {
 		delete frontBuffer;
 		delete backBuffer;
 		backgroundTexture.Destroy();
+		tilesetTexture.Destroy();
 	}
 
 	void Reset() {
@@ -41,6 +43,7 @@ struct Ppu {
 		if (backBuffer)
 			backBuffer->Clear();
 		backgroundTexture.Clear();
+		tilesetTexture.Clear();
 		scanlineCounter = 456;
 		lastDrawnScanLine = 0;
 	}
@@ -56,8 +59,10 @@ struct Ppu {
 	void PutPixel(byte x, byte y, byte tileAttr, byte colorIndex, byte palette, bool priority);
 
 	void DebugDraw();
-	void DrawTilesetToTexture(SimpleTexture & texture, int width, int height);
+	void DrawFullBackgroundToTexture(SimpleTexture & texture, int width, int height);
+	void DrawTilesetToTexture(SimpleTexture & texture);
 	SimpleTexture backgroundTexture;
+	SimpleTexture tilesetTexture;
 
 	bool drawBackgroundTexture = false;
 };

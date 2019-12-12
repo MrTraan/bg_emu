@@ -194,11 +194,11 @@ void Ppu::DrawTiles(int scanline, byte control) {
 		uint16 tileLocation;
 		if (usingUnsigned) {
 			int16 tileIndex = (int16)(mem->Read(tileAddr)); 
-			tileLocation = tileData + (uint16)(tileIndex * 16) + 0x8000;
+			tileLocation = tileData + (uint16)(tileIndex * 16) + 0x0000;
 		}
 		else {
 			int16 tileIndex = (int8)(mem->Read(tileAddr));
-			tileLocation = (uint16)((int)tileData + (int)((tileIndex + 128) * 16)) + 0x8000;
+			tileLocation = (uint16)((int)tileData + (int)((tileIndex + 128) * 16)) + 0x0000;
 		}
 
 		// Attributes used in CGB mode
@@ -215,11 +215,11 @@ void Ppu::DrawTiles(int scanline, byte control) {
 		bool vflip = BIT_IS_SET(tileAttr, 6);
 		bool priority = BIT_IS_SET(tileAttr, 7);
 
-		uint16 bankOffset = cpu->IsCGB() && useBank1 ? 0x6000 : 0x8000;
+		uint16 bankOffset = cpu->IsCGB() && useBank1 ? 0x2000 : 0x0000;
 		byte line = cpu->IsCGB() && vflip ? ((7 - yPos) % 8) * 2 : (yPos % 8) * 2;
 
-		byte tileData1 = mem->Read(tileLocation + line - bankOffset);
-		byte tileData2 = mem->Read(tileLocation + line - bankOffset + 1);
+		byte tileData1 = mem->Read(tileLocation + line + bankOffset);
+		byte tileData2 = mem->Read(tileLocation + line + bankOffset + 1);
 
 		if (cpu->IsCGB() && hflip) {
 			xPos = 7 - xPos;
@@ -316,14 +316,22 @@ void Ppu::DebugDraw() {
 
 	ImGui::Checkbox( "Draw background texture", &drawBackgroundTexture );
 	if (drawBackgroundTexture) {
-		DrawTilesetToTexture(backgroundTexture, backgroundTexture.width, backgroundTexture.height);
+		DrawFullBackgroundToTexture(backgroundTexture, backgroundTexture.width, backgroundTexture.height);
 		backgroundTexture.Update();
 		ImGui::Image((void*)(backgroundTexture.textureHandler), ImVec2(backgroundTexture.width, backgroundTexture.height), ImVec2(0,0), ImVec2(1,1), ImVec4(1.0f,1.0f,1.0f,1.0f), ImVec4(1.0f,1.0f,1.0f,0.5f));
+	}
+	static bool drawTileset = false;
+	ImGui::Checkbox( "Draw tileset", &drawTileset);
+	if (drawTileset) {
+		tilesetTexture.Clear();
+		DrawTilesetToTexture(tilesetTexture);
+		tilesetTexture.Update();
+		ImGui::Image((void*)(tilesetTexture.textureHandler), ImVec2(tilesetTexture.width, tilesetTexture.height), ImVec2(0,0), ImVec2(1,1), ImVec4(1.0f,1.0f,1.0f,1.0f), ImVec4(1.0f,1.0f,1.0f,0.5f));
 	}
 	
 }
 
-void Ppu::DrawTilesetToTexture(SimpleTexture & texture, int width, int height) {
+void Ppu::DrawFullBackgroundToTexture(SimpleTexture & texture, int width, int height) {
 	byte scrollY = mem->Read(0xff42);
 	byte scrollX = mem->Read(0xff43);
 	byte control = mem->Read(0xff40);
@@ -395,6 +403,39 @@ void Ppu::DrawTilesetToTexture(SimpleTexture & texture, int width, int height) {
 			} else {
 				texture.SetPixel( paletteData[ selectedPalette ][ column ], xPos, yPos );
 			}
+		}
+	}
+}
+
+void Ppu::DrawTilesetToTexture(SimpleTexture & texture) {
+	int		x = 0;
+	int		y = 0;
+	byte	palette = mem->Read( 0xff47 );
+	int		line = 0;
+	for ( int i = 0x8000; i < 0x9800; i += 2 ) {
+		byte color1 = mem->Read( i );
+		byte color2 = mem->Read( i + 1 );
+		for ( int j = 7; j >= 0; j-- ) {
+			byte	colorIndex = ( BIT_VALUE( color2, j ) << 1 ) | ( BIT_VALUE( color1, j ) );
+			byte	highBit = colorIndex << 1 | 1;
+			byte	lowBit = colorIndex << 1;
+			byte	column = ( BIT_VALUE( palette, highBit ) << 1 ) | BIT_VALUE( palette, lowBit );
+			Pixel & pixel = paletteData[ selectedPalette ][ column ];
+			texture.SetPixel( pixel, x++, y );
+		}
+		line++;
+		if ( line == 8 ) {
+			line = 0;
+			if ( x >= 16 * 8 ) {
+				x = 0;
+				y++;
+			} else {
+				y = y - ( y % 8 );
+			}
+		} else {
+			x--;
+			x = x - ( x % 8 );
+			y++;
 		}
 	}
 }
