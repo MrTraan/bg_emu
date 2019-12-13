@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "rom.h"
+#include <imgui/imgui.h>
 
 Cartridge * Cartridge::LoadFromFile(const char * path) {
 	FILE * fh = fopen(path, "r");
@@ -84,6 +85,7 @@ void MBC1::Write(uint16 addr, byte val) {
 		} else {
 			ramBank = val & 0x3;
 		}
+		break;
 
 	case 0x6:
 	case 0x7:
@@ -93,6 +95,7 @@ void MBC1::Write(uint16 addr, byte val) {
 		} else {
 			romBank = romBank & 0x1f;
 		}
+		break;
 	}
 }
 
@@ -130,10 +133,12 @@ void MBC5::Write(uint16 addr, byte val) {
 
 	case 0x3:
 		romBank = (romBank & 0xff) | ((val & 0x01) << 8);
+		break;
 
 	case 0x4:
 	case 0x5:
 		ramBank = val & 0xF;
+		break;
 	}
 }
 
@@ -141,4 +146,9 @@ void MBC5::WriteRAM(uint16 addr, byte val) {
 	if (ramEnabled) {
 		ram[ramBank * 0x2000 + addr - 0xa000] = val;
 	}
+}
+
+void MBC5::DebugDraw() {
+	ImGui::Text("Rom bank: %d", romBank);
+	ImGui::Text("Ram bank: %d", ramBank);
 }

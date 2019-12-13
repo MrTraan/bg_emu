@@ -25,7 +25,7 @@ struct Memory {
 	byte WorkRam[0x9000];
 	byte WorkRamBankIndex;
 
-	byte OAM[0xa0];
+	byte OAM[0x100];
 
 	byte inputMask;
 

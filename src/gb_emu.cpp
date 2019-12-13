@@ -334,6 +334,12 @@ void DrawDebugWindow() {
 		ppu.DebugDraw();
 		ImGui::TreePop();
 	}
+	if ( cart != nullptr ) {
+		if (ImGui::TreeNode("Cartridge")) {
+			cart->DebugDraw();
+			ImGui::TreePop();
+		}
+	}
 
 	if (showRomCode) {
 		ImGui::Begin("ROM Code");

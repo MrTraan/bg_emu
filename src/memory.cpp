@@ -25,7 +25,7 @@ static byte BIOS[0x100] = {
 void Memory::Reset() {
 	memset(VRAM, 0, 0x4000);
 	memset(WorkRam, 0, 0x9000);
-	memset(OAM, 0, 0xa0);
+	memset(OAM, 0, 0x100);
 	memset(highRAM, 0, 0x100);
 	WorkRamBankIndex = 1;
 	VRAMBankIndex = 0;
