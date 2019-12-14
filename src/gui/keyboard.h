@@ -6,7 +6,7 @@
 #include "../memory.h"
 #include "../cpu.h"
 
-class Window;
+struct Window;
 
 #define MAX_CONCURRENT_KEY_DOWN 8
 

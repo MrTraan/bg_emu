@@ -53,6 +53,8 @@ WIN32
 "./src/gui/keyboard.cpp"
 "./src/gui/screen_buffer.h"
 "./src/gui/screen_buffer.cpp"
+"./src/gui/textured_rectangle.h"
+"./src/gui/textured_rectangle.cpp"
 
 "./src/sound/blargg_common.h"
 "./src/sound/blargg_source.h"

@@ -25,6 +25,7 @@
 void DrawUI();
 void DrawDebugWindow();
 
+static Window window;
 static MemoryEditor mem_edit;
 static Cartridge * cart;
 static Memory mem;
@@ -62,10 +63,17 @@ static void reset( const char * cartridgePath ) {
 	ppu.Reset();
 }
 
-void drop_callback(GLFWwindow * window, int count, const char ** paths) {
+void drop_callback(GLFWwindow * glWindow, int count, const char ** paths) {
 	if (count == 1) {
 		reset( paths[0] );
 	}
+}
+
+void windowResizeCallback(GLFWwindow * glWindow, int width, int height) {
+	window.Width = width;
+	window.Height = height;
+	ppu.frontBuffer.RefreshSize( window );
+	ppu.backBuffer.RefreshSize( window );
 }
 
 std::vector<std::string> romFSPaths;
@@ -84,6 +92,26 @@ void parseRomPath( const char * path ) {
 	}
 }
 
+#if defined( _WIN32 )
+void GLAPIENTRY
+MessageCallback(GLenum source,
+	GLenum type,
+	GLuint id,
+	GLenum severity,
+	GLsizei length,
+	const GLchar* message,
+	const void* userParam)
+{
+	if (severity == GL_DEBUG_SEVERITY_NOTIFICATION)
+		return;
+	char buffer[1000];
+	snprintf(buffer, 1000, "GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s\n",
+		(type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : ""),
+		type, severity, message);
+	OutputDebugString(buffer);
+}
+#endif
+
 int main(int argc, char **argv)
 {
 	const char * romPath;
@@ -100,14 +128,14 @@ int main(int argc, char **argv)
 
 	parseRomPath( FS_BASE_PATH "/roms" );
 
-	Window window;
+	window.Allocate( GB_SCREEN_WIDTH * 8, GB_SCREEN_HEIGHT * 8, "bg_emu" );
 
 	// Setup imgui
 	ImGui::CreateContext();
 	ImGuiIO& io = ImGui::GetIO();
-	(void)io;
 	ImGui_ImplGlfw_InitForOpenGL(window.GetGlfwWindow(), true);
 	ImGui_ImplOpenGL3_Init("#version 150");
+	io.Fonts->AddFontFromFileTTF( FS_BASE_PATH "/fonts/consolas.ttf", 13 );
 
 	Keyboard::Init(window);
 
@@ -119,10 +147,13 @@ int main(int argc, char **argv)
 	printf("OpenGL version: %s\n", glGetString(GL_VERSION));
 	glEnable(GL_MULTISAMPLE);
 	glEnable(GL_DEBUG_OUTPUT);
-	// glDebugMessageCallback(MessageCallback, 0);
+#if defined( _WIN32 )
+	 glDebugMessageCallback(MessageCallback, 0);
+#endif
 	glEnable(GL_CULL_FACE);
 	glCullFace(GL_BACK);
 	glfwSetDropCallback(window.GetGlfwWindow(), drop_callback);
+	glfwSetWindowSizeCallback(window.GetGlfwWindow(), windowResizeCallback);
 
 	if(SDL_Init(SDL_INIT_AUDIO) < 0)
 		return EXIT_FAILURE;
@@ -136,9 +167,9 @@ int main(int argc, char **argv)
 	gbemu_assert(soundBuffer.set_sample_rate(sample_rate) == nullptr);
 
 	// Generate a few seconds of sound and play using SDL
-	bool show_demo_window = true;
+	bool show_demo_window = false;
 
-	ppu.AllocateBuffers();
+	ppu.AllocateBuffers( window );
 
 	while (!window.ShouldClose()) {
 		double startTime = glfwGetTime();
@@ -154,7 +185,7 @@ int main(int argc, char **argv)
 			ImGui::ShowDemoWindow(&show_demo_window);
 		}
 
-		ppu.frontBuffer->Draw();
+		ppu.drawingBuffer->Draw();
 
 		DrawUI();
 
@@ -201,6 +232,7 @@ int main(int argc, char **argv)
 
 	ppu.DestroyBuffers();
 	delete cart;
+	window.Destroy();
 	return 0;
 }
 

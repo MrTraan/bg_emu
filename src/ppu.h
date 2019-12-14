@@ -3,15 +3,19 @@
 #include "gb_emu.h"
 #include "gui/screen_buffer.h"
 #include "simple_texture.h"
+#include "gui/textured_rectangle.h"
 
 struct Memory;
 struct Cpu;
+struct Window;
 
 struct Ppu {
 	Memory * mem = nullptr;
 	Cpu * cpu = nullptr;
-	ScreenBuffer * frontBuffer = nullptr;
-	ScreenBuffer * backBuffer = nullptr;
+	TexturedRectangle frontBuffer;
+	TexturedRectangle backBuffer;
+	TexturedRectangle * drawingBuffer = nullptr;
+	TexturedRectangle * workBuffer = nullptr;
 
 	static bool debugDrawTiles;
 	static bool debugDrawSprites;
@@ -22,26 +26,18 @@ struct Ppu {
 	int selectedPalette = 0;
 	byte tileScanLine[GB_SCREEN_WIDTH];
 
-	void AllocateBuffers() {
-		frontBuffer = new ScreenBuffer;
-		backBuffer = new ScreenBuffer;
-		backgroundTexture.Allocate(256, 256);
-		tilesetTexture.Allocate(16 * 8, 24 * 8);
-		Reset();
-	}
+	void AllocateBuffers(const Window & window);
 	
 	void DestroyBuffers() {
-		delete frontBuffer;
-		delete backBuffer;
+		frontBuffer.Destroy();
+		backBuffer.Destroy();
 		backgroundTexture.Destroy();
 		tilesetTexture.Destroy();
 	}
 
 	void Reset() {
-		if (frontBuffer)
-			frontBuffer->Clear();
-		if (backBuffer)
-			backBuffer->Clear();
+		frontBuffer.texture.Clear();
+		backBuffer.texture.Clear();
 		backgroundTexture.Clear();
 		tilesetTexture.Clear();
 		scanlineCounter = 456;

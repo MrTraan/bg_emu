@@ -5,6 +5,7 @@
 #include <imgui/imgui.h>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
+#include "gui/window.h"
 
 constexpr int lcdMode1Bounds = 144;
 constexpr int lcdMode2Bounds = 376;
@@ -34,6 +35,18 @@ static Pixel paletteData[3][4] = {
 	},
 };
 
+void Ppu::AllocateBuffers(const Window & window) {
+	frontBuffer.Allocate(0, 20, GB_SCREEN_WIDTH * 4, GB_SCREEN_HEIGHT * 4, window);
+	backBuffer.Allocate(0, 20, GB_SCREEN_WIDTH * 4, GB_SCREEN_HEIGHT * 4, window);
+	frontBuffer.texture.Allocate(GB_SCREEN_WIDTH, GB_SCREEN_HEIGHT);
+	backBuffer.texture.Allocate(GB_SCREEN_WIDTH, GB_SCREEN_HEIGHT);
+	workBuffer = &frontBuffer;
+	drawingBuffer = &backBuffer;
+	backgroundTexture.Allocate(256, 256);
+	tilesetTexture.Allocate(16 * 8, 24 * 8);
+	Reset();
+}
+
 bool Ppu::IsLcdOn() {
 	return BIT_IS_SET(mem->Read(0xff40), 7);
 }
@@ -42,7 +55,7 @@ void Ppu::Update(int cycles) {
 	byte status = mem->Read(0xff41);
 
 	if (!IsLcdOn()) {
-		backBuffer->Clear();
+		workBuffer->texture.Clear();
 		SwapBuffers();
 
 		scanlineCounter = 456;
@@ -144,16 +157,20 @@ void Ppu::PutPixel(byte x, byte y, byte tileAttr, byte colorIndex, byte palette,
 		byte column = (BIT_VALUE(palette, highBit) << 1) | BIT_VALUE(palette, lowBit);
 		Pixel & pixel = paletteData[selectedPalette][column];
 		if ( (priority && true /*bgPriority*/ ) || tileScanLine[x] == 0 ) {
-			backBuffer->SetPixel(x, y, pixel);
+			workBuffer->texture.SetPixel(pixel, x, y);
 		}
 	}
 }
 
 void Ppu::SwapBuffers() {
-	ScreenBuffer* tmp = frontBuffer;
-	frontBuffer = backBuffer;
-	backBuffer = tmp;
-	backBuffer->Clear();
+	if ( workBuffer == &frontBuffer) {
+		workBuffer = &backBuffer;
+		drawingBuffer = &frontBuffer;
+	} else {
+		workBuffer = &frontBuffer;
+		drawingBuffer = &backBuffer;
+	}
+	workBuffer->texture.Clear();
 }
 
 void Ppu::DrawTiles(int scanline, byte control) {

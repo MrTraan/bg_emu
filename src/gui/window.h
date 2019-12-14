@@ -6,10 +6,6 @@
 #include "screen_buffer.h"
 #include "../ppu.h"
 
-constexpr char WINDOW_TITLE[] = "bg_emu";
-constexpr int WINDOW_WIDTH = GB_SCREEN_WIDTH * 8;
-constexpr int WINDOW_HEIGHT = GB_SCREEN_HEIGHT * 8;
-
 static void framebufferSizeCallback(GLFWwindow* window, int width, int height) {
 	glViewport(0, 0, width, height);
 }
@@ -18,16 +14,17 @@ static void glfwErrorCallback(int code, const char* msg) {
 	printf("Glfw error: %s\n", msg);
 }
 
-class Window {
+struct Window {
 public:
 	char* Title;
 	int Width;
 	int Height;
 
-	Window(int width = WINDOW_WIDTH,
-		int height = WINDOW_HEIGHT,
-		char* title = (char*)WINDOW_TITLE)
-		: Width(width), Height(height), Title(title) {
+	void Allocate(int width, int height, char* title) {
+		this->Width = width;
+		this->Height = height;
+		this->Title = title;
+
 		if (!glfwInit()) {
 			throw std::runtime_error("Fatal Error: Could not instantiate glfw");
 		}
@@ -60,7 +57,7 @@ public:
 		glEnable(GL_DEPTH_TEST);
 	}
 
-	~Window() {
+	void Destroy() {
 		glfwDestroyWindow(glWindow);
 		glfwTerminate();
 	}

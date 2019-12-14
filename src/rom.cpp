@@ -25,16 +25,19 @@ Cartridge * Cartridge::LoadFromFile(const char * path) {
 	if (cartType == 0) {
 		ROM * rom = new ROM();
 		gbemu_assert( sizeof(rom->data) >= size );
+		memset( rom->data, 0, sizeof(rom->data) );
 		memcpy(rom->data, cartData, size);
 		cart = rom;
 	} else if (cartType <= 0x03) {
 		MBC1 * rom = new MBC1();
 		gbemu_assert( sizeof(rom->data) >= size );
+		memset( rom->data, 0, sizeof(rom->data) );
 		memcpy(rom->data, cartData, size);
 		cart = rom;
 	} else if (cartType == 0x1b) {
 		MBC5 * rom = new MBC5();
 		gbemu_assert( sizeof(rom->data) >= size );
+		memset( rom->data, 0, sizeof(rom->data) );
 		memcpy(rom->data, cartData, size);
 		cart = rom;
 	} else {
