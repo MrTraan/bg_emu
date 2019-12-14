@@ -55,9 +55,6 @@ void Ppu::Update(int cycles) {
 	byte status = mem->Read(0xff41);
 
 	if (!IsLcdOn()) {
-		workBuffer->texture.Clear();
-		SwapBuffers();
-
 		scanlineCounter = 456;
 		status &= 0xfc;
 		status = BIT_UNSET(status, 0);

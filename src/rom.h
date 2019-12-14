@@ -15,6 +15,8 @@ public:
 	virtual void DebugDraw() {}
 
 	static Cartridge * LoadFromFile(const char * path);
+
+	char romName[200];
 };
 
 class ROM : public Cartridge {

@@ -67,18 +67,18 @@ void Cpu::ExecuteInstruction( byte opcode ) {
 		}
 		case 0x04: {
 			// INC B
-			Inc( B );
+			Inc( BC.high );
 			break;
 		}
 		case 0x05: {
 			// DEC B
-			Dec( B );
+			Dec( BC.high );
 			break;
 		}
 		case 0x06: {
 			// LD B, d8
 			byte val = PopPC();
-			B.Set( val );
+			BC.high.Set( val );
 			break;
 		}
 		case 0x07: {
@@ -117,18 +117,18 @@ void Cpu::ExecuteInstruction( byte opcode ) {
 		}
 		case 0x0c: {
 			// INC C
-			Inc( C );
+			Inc( BC.low );
 			break;
 		}
 		case 0x0d: {
 			// DEC C
-			Dec( C );
+			Dec( BC.low );
 			break;
 		}
 		case 0x0e: {
 			// LD C, d8
 			byte val = PopPC();
-			C.Set( val );
+			BC.low.Set( val );
 			break;
 		}
 		case 0x0f: {
@@ -166,17 +166,17 @@ void Cpu::ExecuteInstruction( byte opcode ) {
 		}
 		case 0x14: {
 			// INC D
-			Inc( D );
+			Inc( DE.high );
 			break;
 		}
 		case 0x15: {
 			// DEC D
-			Dec( D );
+			Dec( DE.high );
 			break;
 		}
 		case 0x16: {
 			// LD D, d8
-			D.Set( PopPC() );
+			DE.high.Set( PopPC() );
 			break;
 		}
 		case 0x17: {
@@ -214,17 +214,17 @@ void Cpu::ExecuteInstruction( byte opcode ) {
 		}
 		case 0x1c: {
 			// INC E
-			Inc( E );
+			Inc( DE.low );
 			break;
 		}
 		case 0x1d: {
 			// DEC E
-			Dec( E );
+			Dec( DE.low );
 			break;
 		}
 		case 0x1e: {
 			// LD E, d8
-			E.Set( PopPC() );
+			DE.low.Set( PopPC() );
 			break;
 		}
 		case 0x1f: {
@@ -267,17 +267,17 @@ void Cpu::ExecuteInstruction( byte opcode ) {
 		}
 		case 0x24: {
 			// INC H
-			Inc( H );
+			Inc( HL.high );
 			break;
 		}
 		case 0x25: {
 			// DEC H
-			Dec( H );
+			Dec( HL.high );
 			break;
 		}
 		case 0x26: {
 			// LD H, d8
-			H.Set( PopPC() );
+			HL.high.Set( PopPC() );
 			break;
 		}
 		case 0x27: {
@@ -339,17 +339,17 @@ void Cpu::ExecuteInstruction( byte opcode ) {
 		}
 		case 0x2c: {
 			// INC L
-			Inc( L );
+			Inc( HL.low );
 			break;
 		}
 		case 0x2d: {
 			// DEC L
-			Dec( L );
+			Dec( HL.low );
 			break;
 		}
 		case 0x2e: {
 			// LD L, d8
-			L.Set( PopPC() );
+			HL.low.Set( PopPC() );
 			break;
 		}
 		case 0x2f: {
@@ -467,272 +467,272 @@ void Cpu::ExecuteInstruction( byte opcode ) {
 		}
 		case 0x40: {
 			// LD B, B
-			B.Set( B.Get() );
+			BC.high.Set( BC.high.Get() );
 			break;
 		}
 		case 0x41: {
 			// LD B, C
-			B.Set( C.Get() );
+			BC.high.Set( BC.low.Get() );
 			break;
 		}
 		case 0x42: {
 			// LD B, D
-			B.Set( D.Get() );
+			BC.high.Set( DE.high.Get() );
 			break;
 		}
 		case 0x43: {
 			// LD B, E
-			B.Set( E.Get() );
+			BC.high.Set( DE.low.Get() );
 			break;
 		}
 		case 0x44: {
 			// LD B, H
-			B.Set( H.Get() );
+			BC.high.Set( HL.high.Get() );
 			break;
 		}
 		case 0x45: {
 			// LD B, L
-			B.Set( L.Get() );
+			BC.high.Set( HL.low.Get() );
 			break;
 		}
 		case 0x46: {
 			// LD B, (HL)
-			B.Set( mem->Read( HL.Get() ) );
+			BC.high.Set( mem->Read( HL.Get() ) );
 			break;
 		}
 		case 0x47: {
 			// LD B, A
-			B.Set( A.Get() );
+			BC.high.Set( A.Get() );
 			break;
 		}
 		case 0x48: {
 			// LD C, B
-			C.Set( B.Get() );
+			BC.low.Set( BC.high.Get() );
 			break;
 		}
 		case 0x49: {
 			// LD C, C
-			C.Set( C.Get() );
+			BC.low.Set( BC.low.Get() );
 			break;
 		}
 		case 0x4a: {
 			// LD C, D
-			C.Set( D.Get() );
+			BC.low.Set( DE.high.Get() );
 			break;
 		}
 		case 0x4b: {
 			// LD C, E
-			C.Set( E.Get() );
+			BC.low.Set( DE.low.Get() );
 			break;
 		}
 		case 0x4c: {
 			// LD C, H
-			C.Set( H.Get() );
+			BC.low.Set( HL.high.Get() );
 			break;
 		}
 		case 0x4d: {
 			// LD C, L
-			C.Set( L.Get() );
+			BC.low.Set( HL.low.Get() );
 			break;
 		}
 		case 0x4e: {
 			// LD C, (HL)
-			C.Set( mem->Read( HL.Get() ) );
+			BC.low.Set( mem->Read( HL.Get() ) );
 			break;
 		}
 		case 0x4f: {
 			// LD C, A
-			C.Set( A.Get() );
+			BC.low.Set( A.Get() );
 			break;
 		}
 		case 0x50: {
 			// LD D, B
-			D.Set( B.Get() );
+			DE.high.Set( BC.high.Get() );
 			break;
 		}
 		case 0x51: {
 			// LD D, C
-			D.Set( C.Get() );
+			DE.high.Set( BC.low.Get() );
 			break;
 		}
 		case 0x52: {
 			// LD D, D
-			D.Set( D.Get() );
+			DE.high.Set( DE.high.Get() );
 			break;
 		}
 		case 0x53: {
 			// LD D, E
-			D.Set( E.Get() );
+			DE.high.Set( DE.low.Get() );
 			break;
 		}
 		case 0x54: {
 			// LD D, H
-			D.Set( H.Get() );
+			DE.high.Set( HL.high.Get() );
 			break;
 		}
 		case 0x55: {
 			// LD D, L
-			D.Set( L.Get() );
+			DE.high.Set( HL.low.Get() );
 			break;
 		}
 		case 0x56: {
 			// LD D, (HL)
-			D.Set( mem->Read( HL.Get() ) );
+			DE.high.Set( mem->Read( HL.Get() ) );
 			break;
 		}
 		case 0x57: {
 			// LD D, A
-			D.Set( A.Get() );
+			DE.high.Set( A.Get() );
 			break;
 		}
 		case 0x58: {
 			// LD E, B
-			E.Set( B.Get() );
+			DE.low.Set( BC.high.Get() );
 			break;
 		}
 		case 0x59: {
 			// LD E, C
-			E.Set( C.Get() );
+			DE.low.Set( BC.low.Get() );
 			break;
 		}
 		case 0x5a: {
 			// LD E, D
-			E.Set( D.Get() );
+			DE.low.Set( DE.high.Get() );
 			break;
 		}
 		case 0x5b: {
 			// LD E, E
-			E.Set( E.Get() );
+			DE.low.Set( DE.low.Get() );
 			break;
 		}
 		case 0x5c: {
 			// LD E, H
-			E.Set( H.Get() );
+			DE.low.Set( HL.high.Get() );
 			break;
 		}
 		case 0x5d: {
 			// LD E, L
-			E.Set( L.Get() );
+			DE.low.Set( HL.low.Get() );
 			break;
 		}
 		case 0x5e: {
 			// LD E, (HL)
-			E.Set( mem->Read( HL.Get() ) );
+			DE.low.Set( mem->Read( HL.Get() ) );
 			break;
 		}
 		case 0x5f: {
 			// LD E, A
-			E.Set( A.Get() );
+			DE.low.Set( A.Get() );
 			break;
 		}
 		case 0x60: {
 			// LD H, B
-			H.Set( B.Get() );
+			HL.high.Set( BC.high.Get() );
 			break;
 		}
 		case 0x61: {
 			// LD H, C
-			H.Set( C.Get() );
+			HL.high.Set( BC.low.Get() );
 			break;
 		}
 		case 0x62: {
 			// LD H, D
-			H.Set( D.Get() );
+			HL.high.Set( DE.high.Get() );
 			break;
 		}
 		case 0x63: {
 			// LD H, E
-			H.Set( E.Get() );
+			HL.high.Set( DE.low.Get() );
 			break;
 		}
 		case 0x64: {
 			// LD H, H
-			H.Set( H.Get() );
+			HL.high.Set( HL.high.Get() );
 			break;
 		}
 		case 0x65: {
 			// LD H, L
-			H.Set( L.Get() );
+			HL.high.Set( HL.low.Get() );
 			break;
 		}
 		case 0x66: {
 			// LD H, (HL)
-			H.Set( mem->Read( HL.Get() ) );
+			HL.high.Set( mem->Read( HL.Get() ) );
 			break;
 		}
 		case 0x67: {
 			// LD H, A
-			H.Set( A.Get() );
+			HL.high.Set( A.Get() );
 			break;
 		}
 		case 0x68: {
 			// LD L, B
-			L.Set( B.Get() );
+			HL.low.Set( BC.high.Get() );
 			break;
 		}
 		case 0x69: {
 			// LD L, C
-			L.Set( C.Get() );
+			HL.low.Set( BC.low.Get() );
 			break;
 		}
 		case 0x6a: {
 			// LD L, D
-			L.Set( D.Get() );
+			HL.low.Set( DE.high.Get() );
 			break;
 		}
 		case 0x6b: {
 			// LD L, E
-			L.Set( E.Get() );
+			HL.low.Set( DE.low.Get() );
 			break;
 		}
 		case 0x6c: {
 			// LD L, H
-			L.Set( H.Get() );
+			HL.low.Set( HL.high.Get() );
 			break;
 		}
 		case 0x6d: {
 			// LD L, L
-			L.Set( L.Get() );
+			HL.low.Set( HL.low.Get() );
 			break;
 		}
 		case 0x6e: {
 			// LD L, (HL)
-			L.Set( mem->Read( HL.Get() ) );
+			HL.low.Set( mem->Read( HL.Get() ) );
 			break;
 		}
 		case 0x6f: {
 			// LD L, A
-			L.Set( A.Get() );
+			HL.low.Set( A.Get() );
 			break;
 		}
 		case 0x70: {
 			// LD (HL), B
-			mem->Write( HL.Get(), B.Get() );
+			mem->Write( HL.Get(), BC.high.Get() );
 			break;
 		}
 		case 0x71: {
 			// LD (HL), C
-			mem->Write( HL.Get(), C.Get() );
+			mem->Write( HL.Get(), BC.low.Get() );
 			break;
 		}
 		case 0x72: {
 			// LD (HL), D
-			mem->Write( HL.Get(), D.Get() );
+			mem->Write( HL.Get(), DE.high.Get() );
 			break;
 		}
 		case 0x73: {
 			// LD (HL), E
-			mem->Write( HL.Get(), E.Get() );
+			mem->Write( HL.Get(), DE.low.Get() );
 			break;
 		}
 		case 0x74: {
 			// LD (HL), H
-			mem->Write( HL.Get(), H.Get() );
+			mem->Write( HL.Get(), HL.high.Get() );
 			break;
 		}
 		case 0x75: {
 			// LD (HL), L
-			mem->Write( HL.Get(), L.Get() );
+			mem->Write( HL.Get(), HL.low.Get() );
 			break;
 		}
 		case 0x76: {
@@ -747,32 +747,32 @@ void Cpu::ExecuteInstruction( byte opcode ) {
 		}
 		case 0x78: {
 			// LD A, B
-			A.Set( B.Get() );
+			A.Set( BC.high.Get() );
 			break;
 		}
 		case 0x79: {
 			// LD A, C
-			A.Set( C.Get() );
+			A.Set( BC.low.Get() );
 			break;
 		}
 		case 0x7a: {
 			// LD A, D
-			A.Set( D.Get() );
+			A.Set( DE.high.Get() );
 			break;
 		}
 		case 0x7b: {
 			// LD A, E
-			A.Set( E.Get() );
+			A.Set( DE.low.Get() );
 			break;
 		}
 		case 0x7c: {
 			// LD A, H
-			A.Set( H.Get() );
+			A.Set( HL.high.Get() );
 			break;
 		}
 		case 0x7d: {
 			// LD A, L
-			A.Set( L.Get() );
+			A.Set( HL.low.Get() );
 			break;
 		}
 		case 0x7e: {
@@ -787,32 +787,32 @@ void Cpu::ExecuteInstruction( byte opcode ) {
 		}
 		case 0x80: {
 			// ADD A,B
-			Add( A, B.Get(), false );
+			Add( A, BC.high.Get(), false );
 			break;
 		}
 		case 0x81: {
 			// ADD A,C
-			Add( A, C.Get(), false );
+			Add( A, BC.low.Get(), false );
 			break;
 		}
 		case 0x82: {
 			// ADD A,D
-			Add( A, D.Get(), false );
+			Add( A, DE.high.Get(), false );
 			break;
 		}
 		case 0x83: {
 			// ADD A,E
-			Add( A, E.Get(), false );
+			Add( A, DE.low.Get(), false );
 			break;
 		}
 		case 0x84: {
 			// ADD A,H
-			Add( A, H.Get(), false );
+			Add( A, HL.high.Get(), false );
 			break;
 		}
 		case 0x85: {
 			// ADD A,L
-			Add( A, L.Get(), false );
+			Add( A, HL.low.Get(), false );
 			break;
 		}
 		case 0x86: {
@@ -827,32 +827,32 @@ void Cpu::ExecuteInstruction( byte opcode ) {
 		}
 		case 0x88: {
 			// ADC A,B
-			Add( A, B.Get(), true );
+			Add( A, BC.high.Get(), true );
 			break;
 		}
 		case 0x89: {
 			// ADC A,C
-			Add( A, C.Get(), true );
+			Add( A, BC.low.Get(), true );
 			break;
 		}
 		case 0x8a: {
 			// ADC A,D
-			Add( A, D.Get(), true );
+			Add( A, DE.high.Get(), true );
 			break;
 		}
 		case 0x8b: {
 			// ADC A,E
-			Add( A, E.Get(), true );
+			Add( A, DE.low.Get(), true );
 			break;
 		}
 		case 0x8c: {
 			// ADC A,H
-			Add( A, H.Get(), true );
+			Add( A, HL.high.Get(), true );
 			break;
 		}
 		case 0x8d: {
 			// ADC A,L
-			Add( A, L.Get(), true );
+			Add( A, HL.low.Get(), true );
 			break;
 		}
 		case 0x8e: {
@@ -867,32 +867,32 @@ void Cpu::ExecuteInstruction( byte opcode ) {
 		}
 		case 0x90: {
 			// SUB A, B
-			Sub( A, B.Get(), false );
+			Sub( A, BC.high.Get(), false );
 			break;
 		}
 		case 0x91: {
 			// SUB A, C
-			Sub( A, C.Get(), false );
+			Sub( A, BC.low.Get(), false );
 			break;
 		}
 		case 0x92: {
 			// SUB A, D
-			Sub( A, D.Get(), false );
+			Sub( A, DE.high.Get(), false );
 			break;
 		}
 		case 0x93: {
 			// SUB A, E
-			Sub( A, E.Get(), false );
+			Sub( A, DE.low.Get(), false );
 			break;
 		}
 		case 0x94: {
 			// SUB A, H
-			Sub( A, H.Get(), false );
+			Sub( A, HL.high.Get(), false );
 			break;
 		}
 		case 0x95: {
 			// SUB A, L
-			Sub( A, L.Get(), false );
+			Sub( A, HL.low.Get(), false );
 			break;
 		}
 		case 0x96: {
@@ -907,32 +907,32 @@ void Cpu::ExecuteInstruction( byte opcode ) {
 		}
 		case 0x98: {
 			// SBC A,B
-			Sub( A, B.Get(), true );
+			Sub( A, BC.high.Get(), true );
 			break;
 		}
 		case 0x99: {
 			// SBC A,C
-			Sub( A, C.Get(), true );
+			Sub( A, BC.low.Get(), true );
 			break;
 		}
 		case 0x9a: {
 			// SBC A,D
-			Sub( A, D.Get(), true );
+			Sub( A, DE.high.Get(), true );
 			break;
 		}
 		case 0x9b: {
 			// SBC A,E
-			Sub( A, E.Get(), true );
+			Sub( A, DE.low.Get(), true );
 			break;
 		}
 		case 0x9c: {
 			// SBC A,H
-			Sub( A, H.Get(), true );
+			Sub( A, HL.high.Get(), true );
 			break;
 		}
 		case 0x9d: {
 			// SBC A,L
-			Sub( A, L.Get(), true );
+			Sub( A, HL.low.Get(), true );
 			break;
 		}
 		case 0x9e: {
@@ -947,32 +947,32 @@ void Cpu::ExecuteInstruction( byte opcode ) {
 		}
 		case 0xa0: {
 			// AND A, B
-			And( A, B.Get() );
+			And( A, BC.high.Get() );
 			break;
 		}
 		case 0xa1: {
 			// AND A, C
-			And( A, C.Get() );
+			And( A, BC.low.Get() );
 			break;
 		}
 		case 0xa2: {
 			// AND A, D
-			And( A, D.Get() );
+			And( A, DE.high.Get() );
 			break;
 		}
 		case 0xa3: {
 			// AND A, E
-			And( A, E.Get() );
+			And( A, DE.low.Get() );
 			break;
 		}
 		case 0xa4: {
 			// AND A, H
-			And( A, H.Get() );
+			And( A, HL.high.Get() );
 			break;
 		}
 		case 0xa5: {
 			// AND A, L
-			And( A, L.Get() );
+			And( A, HL.low.Get() );
 			break;
 		}
 		case 0xa6: {
@@ -987,32 +987,32 @@ void Cpu::ExecuteInstruction( byte opcode ) {
 		}
 		case 0xa8: {
 			// XOR A, B
-			Xor( A, B.Get() );
+			Xor( A, BC.high.Get() );
 			break;
 		}
 		case 0xa9: {
 			// XOR A, C
-			Xor( A, C.Get() );
+			Xor( A, BC.low.Get() );
 			break;
 		}
 		case 0xaa: {
 			// XOR A, D
-			Xor( A, D.Get() );
+			Xor( A, DE.high.Get() );
 			break;
 		}
 		case 0xab: {
 			// XOR A, E
-			Xor( A, E.Get() );
+			Xor( A, DE.low.Get() );
 			break;
 		}
 		case 0xac: {
 			// XOR A, H
-			Xor( A, H.Get() );
+			Xor( A, HL.high.Get() );
 			break;
 		}
 		case 0xad: {
 			// XOR A, L
-			Xor( A, L.Get() );
+			Xor( A, HL.low.Get() );
 			break;
 		}
 		case 0xae: {
@@ -1027,32 +1027,32 @@ void Cpu::ExecuteInstruction( byte opcode ) {
 		}
 		case 0xb0: {
 			// OR B
-			Or( A, B.Get() );
+			Or( A, BC.high.Get() );
 			break;
 		}
 		case 0xb1: {
 			// OR C
-			Or( A, C.Get() );
+			Or( A, BC.low.Get() );
 			break;
 		}
 		case 0xb2: {
 			// OR D
-			Or( A, D.Get() );
+			Or( A, DE.high.Get() );
 			break;
 		}
 		case 0xb3: {
 			// OR E
-			Or( A, E.Get() );
+			Or( A, DE.low.Get() );
 			break;
 		}
 		case 0xb4: {
 			// OR H
-			Or( A, H.Get() );
+			Or( A, HL.high.Get() );
 			break;
 		}
 		case 0xb5: {
 			// OR L
-			Or( A, L.Get() );
+			Or( A, HL.low.Get() );
 			break;
 		}
 		case 0xb6: {
@@ -1067,32 +1067,32 @@ void Cpu::ExecuteInstruction( byte opcode ) {
 		}
 		case 0xb8: {
 			// CP B
-			Cp( A, B.Get() );
+			Cp( A, BC.high.Get() );
 			break;
 		}
 		case 0xb9: {
 			// CP C
-			Cp( A, C.Get() );
+			Cp( A, BC.low.Get() );
 			break;
 		}
 		case 0xba: {
 			// CP D
-			Cp( A, D.Get() );
+			Cp( A, DE.high.Get() );
 			break;
 		}
 		case 0xbb: {
 			// CP E
-			Cp( A, E.Get() );
+			Cp( A, DE.low.Get() );
 			break;
 		}
 		case 0xbc: {
 			// CP H
-			Cp( A, H.Get() );
+			Cp( A, HL.high.Get() );
 			break;
 		}
 		case 0xbd: {
 			// CP L
-			Cp( A, L.Get() );
+			Cp( A, HL.low.Get() );
 			break;
 		}
 		case 0xbe: {
@@ -1319,7 +1319,7 @@ void Cpu::ExecuteInstruction( byte opcode ) {
 		}
 		case 0xe2: {
 			// LD (C), A
-			mem->Write( 0xFF00 + C.Get(), A.Get() );
+			mem->Write( 0xFF00 + BC.low.Get(), A.Get() );
 			break;
 		}
 		case 0xe3: {
@@ -1389,14 +1389,15 @@ void Cpu::ExecuteInstruction( byte opcode ) {
 			break;
 		}
 		case 0xf1: {
-			// TODO: Apparently this might affect flags? But I have no idea how
 			// POP AF
-			AF.Set( PopStack() );
+			uint16 val = PopStack();
+			A.Set(val >> 8);
+			F.Set(val);
 			break;
 		}
 		case 0xf2: {
 			// LD A, (C)
-			A.Set( mem->Read( 0xFF00 + C.Get() ) );
+			A.Set( mem->Read( 0xFF00 + BC.low.Get() ) );
 			break;
 		}
 		case 0xf3: {
@@ -1410,7 +1411,8 @@ void Cpu::ExecuteInstruction( byte opcode ) {
 		}
 		case 0xf5: {
 			// PUSH AF
-			PushStack( AF.Get() );
+			uint16 val = ((uint16)(A.Get()) << 8) | F.Get();
+			PushStack( val );
 			break;
 		}
 		case 0xf6: {

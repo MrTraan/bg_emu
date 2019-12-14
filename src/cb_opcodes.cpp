@@ -118,22 +118,22 @@ int ExecuteCBOPCode(Cpu* cpu, uint16 opcode) {
 
 	byte input = 0;
 	if (opOffset == 0) {
-		input = cpu->B.Get();
+		input = cpu->BC.high.Get();
 	}
 	else if (opOffset == 1) {
-		input = cpu->C.Get();
+		input = cpu->BC.low.Get();
 	}
 	else if (opOffset == 2) {
-		input = cpu->D.Get();
+		input = cpu->DE.high.Get();
 	}
 	else if (opOffset == 3) {
-		input = cpu->E.Get();
+		input = cpu->DE.low.Get();
 	}
 	else if (opOffset == 4) {
-		input = cpu->H.Get();
+		input = cpu->HL.high.Get();
 	}
 	else if (opOffset == 5) {
-		input = cpu->L.Get();
+		input = cpu->HL.low.Get();
 	}
 	else if (opOffset == 6) {
 		input = cpu->mem->Read(cpu->HL.Get());
@@ -187,22 +187,22 @@ int ExecuteCBOPCode(Cpu* cpu, uint16 opcode) {
 
 	if (hasOutput) {
 		if (opOffset == 0) {
-			cpu->B.Set(output);
+			cpu->BC.high.Set(output);
 		}
 		else if (opOffset == 1) {
-			cpu->C.Set(output);
+			cpu->BC.low.Set(output);
 		}
 		else if (opOffset == 2) {
-			cpu->D.Set(output);
+			cpu->DE.high.Set(output);
 		}
 		else if (opOffset == 3) {
-			cpu->E.Set(output);
+			cpu->DE.low.Set(output);
 		}
 		else if (opOffset == 4) {
-			cpu->H.Set(output);
+			cpu->HL.high.Set(output);
 		}
 		else if (opOffset == 5) {
-			cpu->L.Set(output);
+			cpu->HL.low.Set(output);
 		}
 		else if (opOffset == 6) {
 			cpu->mem->Write(cpu->HL.Get(), output);

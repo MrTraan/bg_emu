@@ -14,6 +14,12 @@ Cartridge * Cartridge::LoadFromFile(const char * path) {
 	long size = ftell(fh);
 	rewind(fh);
 
+	if (size < 0x148) {
+		// We won't be able to check cart type, this is not a valid rom
+		fclose(fh);
+		return nullptr;
+	}
+
 	byte * cartData = new byte[size];
 	fread(cartData, size, 1, fh);
 	fclose(fh);
@@ -44,6 +50,12 @@ Cartridge * Cartridge::LoadFromFile(const char * path) {
 		DEBUG_BREAK;
 	}
 
+	if ( cart != nullptr ) {
+		const char * lastSlash = strrchr(path, '/');
+		strncpy( cart->romName, lastSlash + 1, sizeof(cart->romName) );
+		char * lastDot = strrchr(cart->romName, '.');
+		*lastDot = 0;
+	}
 	delete [] cartData;
 	return cart;
 }

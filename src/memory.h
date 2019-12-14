@@ -12,7 +12,7 @@ struct Cpu;
 struct Gb_Apu;
 
 struct Memory {
-	void Reset();
+	void Reset( bool skipBios );
 
 	Cartridge * cart;
 	Cpu * cpu;

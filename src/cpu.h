@@ -36,18 +36,11 @@ struct Cpu {
 	static byte			  s_instructionsSize[ 0x100 ];
 	const char *		  lastInstructionName = nullptr;
 
-	Register16	AF;
+	Register8	A;
+	Register8	F;
 	Register16  BC;
 	Register16  DE;
 	Register16  HL;
-	Register8& A = AF.high;
-	Register8& F = AF.low;
-	Register8& B = BC.high;
-	Register8& C = BC.low;
-	Register8& D = DE.high;
-	Register8& E = DE.low;
-	Register8& H = HL.high;
-	Register8& L = HL.low;
 
 	uint16	   PC;
 	Register16 SP;
@@ -63,7 +56,7 @@ struct Cpu {
 	bool interuptsEnabled = true;
 	bool interuptsOn = false;
 	bool isOnHalt = false;
-	bool skipBios = false;
+	static bool skipBios;
 
 	bool IsCGB() { return false; }
 
@@ -73,10 +66,11 @@ struct Cpu {
 		} else {
 			PC = 0x0;
 		}
-		AF.Set(0x01B0);
-		BC.Set(0);
-		DE.Set(0xFF56);
-		HL.Set(0x000D);
+		A.Set(0x01);
+		F.Set(0xF0);
+		BC.Set(0x0013);
+		DE.Set(0x00d8);
+		HL.Set(0x014d);
 		SP.Set(0xFFFE);
 		F.mask = 0xF0;
 
@@ -130,10 +124,10 @@ struct Cpu {
 	void SetH(bool val) { SetFlag(5, val); }
 	void SetC(bool val) { SetFlag(4, val); }
 
-	bool GetZ() { return BIT_IS_SET(AF.Get(), 7); }
-	bool GetN() { return BIT_IS_SET(AF.Get(), 6); }
-	bool GetH() { return BIT_IS_SET(AF.Get(), 5); }
-	bool GetC() { return BIT_IS_SET(AF.Get(), 4); }
+	bool GetZ() { return BIT_IS_SET(F.Get(), 7); }
+	bool GetN() { return BIT_IS_SET(F.Get(), 6); }
+	bool GetH() { return BIT_IS_SET(F.Get(), 5); }
+	bool GetC() { return BIT_IS_SET(F.Get(), 4); }
 
 	void ExecuteInstruction(byte opcode);
 };

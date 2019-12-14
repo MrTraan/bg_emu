@@ -57,7 +57,7 @@ static void reset( const char * cartridgePath ) {
 	apu.reset();
 	sound.stop();
 	gbemu_assert(sound.start(sample_rate, 2) == nullptr);
-	mem.Reset();
+	mem.Reset(cpu.skipBios);
 	cpu.Reset();
 	ppu.Reset();
 }
@@ -166,7 +166,7 @@ int main(int argc, char **argv)
 	gbemu_assert(soundBuffer.set_sample_rate(sample_rate) == nullptr);
 
 	// Generate a few seconds of sound and play using SDL
-	bool show_demo_window = false;
+	bool show_demo_window = true;
 
 	ppu.AllocateBuffers( window );
 
@@ -260,7 +260,7 @@ void DrawUI() {
 		if (ImGui::MenuItem("Reset")) {
 			// TODO: Use reset function
 			cpu.Reset();
-			mem.Reset();
+			mem.Reset(cpu.skipBios);
 			ppu.Reset();
 		}
 		if (ImGui::MenuItem("Debug")) {
@@ -295,11 +295,11 @@ void DrawDebugWindow() {
 	ImGui::Separator();
 	ImGui::Text("0x%02x", cpu.A.Get()); ImGui::NextColumn();
 	ImGui::Text("0x%02x", cpu.F.Get()); ImGui::NextColumn();
-	ImGui::Text("0x%02x", cpu.B.Get()); ImGui::NextColumn();
-	ImGui::Text("0x%02x", cpu.C.Get()); ImGui::NextColumn();
+	ImGui::Text("0x%02x", cpu.BC.high.Get()); ImGui::NextColumn();
+	ImGui::Text("0x%02x", cpu.BC.low.Get()); ImGui::NextColumn();
 	ImGui::Columns(2, "registers 16bits");
 	ImGui::Separator();
-	ImGui::Text("0x%04x", cpu.AF.Get()); ImGui::NextColumn();
+	ImGui::Text("0x%04x", (uint16)(cpu.A.Get() << 8) | (cpu.F.Get())); ImGui::NextColumn();
 	ImGui::Text("0x%04x", cpu.BC.Get()); ImGui::NextColumn();
 	ImGui::Columns(4, "registers");
 	ImGui::Separator();
@@ -308,10 +308,10 @@ void DrawDebugWindow() {
 	ImGui::Text("H"); ImGui::NextColumn();
 	ImGui::Text("L"); ImGui::NextColumn();
 	ImGui::Separator();
-	ImGui::Text("0x%02x", cpu.D.Get()); ImGui::NextColumn();
-	ImGui::Text("0x%02x", cpu.E.Get()); ImGui::NextColumn();
-	ImGui::Text("0x%02x", cpu.H.Get()); ImGui::NextColumn();
-	ImGui::Text("0x%02x", cpu.L.Get()); ImGui::NextColumn();
+	ImGui::Text("0x%02x", cpu.DE.high.Get()); ImGui::NextColumn();
+	ImGui::Text("0x%02x", cpu.DE.low.Get()); ImGui::NextColumn();
+	ImGui::Text("0x%02x", cpu.HL.high.Get()); ImGui::NextColumn();
+	ImGui::Text("0x%02x", cpu.HL.low.Get()); ImGui::NextColumn();
 	ImGui::Columns(2, "registers 16bits");
 	ImGui::Separator();
 	ImGui::Text("0x%04x", cpu.DE.Get()); ImGui::NextColumn();
@@ -346,7 +346,6 @@ void DrawDebugWindow() {
 	if (buf[0] != '\0') {
 		PCBreakpoint = strtol(buf, nullptr, 16);
 	}
-	bool shouldStep = false;
 	if (ImGui::Button("Step")) {
 		shouldStep = true;
 	}
