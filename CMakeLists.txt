@@ -51,8 +51,6 @@ WIN32
 "./src/gui/window.h"
 "./src/gui/keyboard.h"
 "./src/gui/keyboard.cpp"
-"./src/gui/screen_buffer.h"
-"./src/gui/screen_buffer.cpp"
 "./src/gui/textured_rectangle.h"
 "./src/gui/textured_rectangle.cpp"
 

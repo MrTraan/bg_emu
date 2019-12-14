@@ -1,7 +1,6 @@
 #pragma once
 
 #include "gb_emu.h"
-#include "gui/screen_buffer.h"
 #include "simple_texture.h"
 #include "gui/textured_rectangle.h"
 

@@ -3,7 +3,6 @@
 #include <glad/glad.h>
 #include <stdexcept>
 #include "keyboard.h"
-#include "screen_buffer.h"
 #include "../ppu.h"
 
 static void framebufferSizeCallback(GLFWwindow* window, int width, int height) {

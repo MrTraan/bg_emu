@@ -17,7 +17,6 @@
 #include "rom.h"
 #include "gui/window.h"
 #include "gui/keyboard.h"
-#include "gui/screen_buffer.h"
 #include "sound/Gb_Apu.h"
 #include "sound/Multi_Buffer.h"
 #include "sound/Sound_Queue.h"
