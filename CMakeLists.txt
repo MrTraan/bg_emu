@@ -42,7 +42,6 @@ WIN32
 "./src/cpu.cpp"
 "./src/ppu.h"
 "./src/ppu.cpp"
-"./src/memory.h"
 "./src/memory.cpp"
 "./src/cb_opcodes.cpp"
 "./src/rom.h"

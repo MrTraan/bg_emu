@@ -1,5 +1,5 @@
 #include "cpu.h"
-#include "memory.h"
+#include "gameboy.h"
 
 #define INVALID_OP DEBUG_BREAK
 
@@ -40,7 +40,7 @@ byte Cpu::s_instructionsSize[ 0x100 ] = { 1, 3, 1, 1, 1, 1, 2, 1, 3, 1, 1, 1, 1,
 										  1, 1, 1, 1, 1, 1, 1, 1, 1, 3, 3, 3, 1, 2, 1, 1, 1, 3, 1, 3, 3, 2, 1, 1, 1, 3, 1, 3, 1, 2, 1, 1, 1, 3, 1, 3, 1,
 										  2, 1, 2, 1, 2, 1, 1, 1, 2, 1, 2, 1, 3, 1, 1, 1, 2, 1, 2, 1, 2, 1, 1, 1, 2, 1, 2, 1, 3, 1, 1, 1, 2, 1 };
 
-void Cpu::ExecuteInstruction( byte opcode ) {
+void Cpu::ExecuteInstruction( byte opcode, Gameboy * gb ) {
 	switch ( opcode ) {
 		case 0x00: {
 			break;
@@ -49,7 +49,7 @@ void Cpu::ExecuteInstruction( byte opcode ) {
 		}
 		case 0x01: {
 			// LD BC, d16
-			uint16 val = PopPC16();
+			uint16 val = PopPC16(gb);
 			BC.Set( val );
 			break;
 		}
@@ -57,7 +57,7 @@ void Cpu::ExecuteInstruction( byte opcode ) {
 			// LD (BC), A
 			uint16	addr = BC.Get();
 			byte	val = A.Get();
-			mem->Write( addr, val );
+			gb->Write( addr, val );
 			break;
 		}
 		case 0x03: {
@@ -77,7 +77,7 @@ void Cpu::ExecuteInstruction( byte opcode ) {
 		}
 		case 0x06: {
 			// LD B, d8
-			byte val = PopPC();
+			byte val = PopPC(gb);
 			BC.high.Set( val );
 			break;
 		}
@@ -94,9 +94,9 @@ void Cpu::ExecuteInstruction( byte opcode ) {
 		}
 		case 0x08: {
 			// LD (a16), SP
-			uint16 addr = PopPC16();
-			mem->Write( addr, SP.low.Get() );
-			mem->Write( addr + 1, SP.high.Get() );
+			uint16 addr = PopPC16(gb);
+			gb->Write( addr, SP.low.Get() );
+			gb->Write( addr + 1, SP.high.Get() );
 			break;
 		}
 		case 0x09: {
@@ -106,7 +106,7 @@ void Cpu::ExecuteInstruction( byte opcode ) {
 		}
 		case 0x0a: {
 			// LD A, (BC)
-			byte val = mem->Read( BC.Get() );
+			byte val = gb->Read( BC.Get() );
 			A.Set( val );
 			break;
 		}
@@ -127,7 +127,7 @@ void Cpu::ExecuteInstruction( byte opcode ) {
 		}
 		case 0x0e: {
 			// LD C, d8
-			byte val = PopPC();
+			byte val = PopPC(gb);
 			BC.low.Set( val );
 			break;
 		}
@@ -145,18 +145,18 @@ void Cpu::ExecuteInstruction( byte opcode ) {
 		case 0x10: {
 			// STOP 0
 			// Halt();
-			PopPC(); // Read next byte, because this instruction is actualy 2 bytes : 0x10 0x00, no idea why
+			PopPC(gb); // Read next byte, because this instruction is actualy 2 bytes : 0x10 0x00, no idea why
 					 // TODO: Game boy color change speed
 			break;
 		}
 		case 0x11: {
 			// LD DE, d16
-			DE.Set( PopPC16() );
+			DE.Set( PopPC16(gb) );
 			break;
 		}
 		case 0x12: {
 			// LD (DE), A
-			mem->Write( DE.Get(), A.Get() );
+			gb->Write( DE.Get(), A.Get() );
 			break;
 		}
 		case 0x13: {
@@ -176,7 +176,7 @@ void Cpu::ExecuteInstruction( byte opcode ) {
 		}
 		case 0x16: {
 			// LD D, d8
-			DE.high.Set( PopPC() );
+			DE.high.Set( PopPC(gb) );
 			break;
 		}
 		case 0x17: {
@@ -193,7 +193,7 @@ void Cpu::ExecuteInstruction( byte opcode ) {
 		}
 		case 0x18: {
 			// JR r8
-			int addr = (int8)PopPC() + (int)PC;
+			int addr = (int8)PopPC(gb) + (int)PC;
 			PC = (uint16)addr;
 			break;
 		}
@@ -204,7 +204,7 @@ void Cpu::ExecuteInstruction( byte opcode ) {
 		}
 		case 0x1a: {
 			// LD A, (DE)
-			A.Set( mem->Read( DE.Get() ) );
+			A.Set( gb->Read( DE.Get() ) );
 			break;
 		}
 		case 0x1b: {
@@ -224,7 +224,7 @@ void Cpu::ExecuteInstruction( byte opcode ) {
 		}
 		case 0x1e: {
 			// LD E, d8
-			DE.low.Set( PopPC() );
+			DE.low.Set( PopPC(gb) );
 			break;
 		}
 		case 0x1f: {
@@ -241,7 +241,7 @@ void Cpu::ExecuteInstruction( byte opcode ) {
 		}
 		case 0x20: {
 			// JR NZ, r8
-			int8 jump = (int8)PopPC();
+			int8 jump = (int8)PopPC(gb);
 			if ( !GetZ() ) {
 				uint16 addr = PC + jump;
 				PC = addr;
@@ -251,12 +251,12 @@ void Cpu::ExecuteInstruction( byte opcode ) {
 		}
 		case 0x21: {
 			// LD HL, d16
-			HL.Set( PopPC16() );
+			HL.Set( PopPC16(gb) );
 			break;
 		}
 		case 0x22: {
 			// LD (HL+), A
-			mem->Write( HL.Get(), A.Get() );
+			gb->Write( HL.Get(), A.Get() );
 			Inc16( HL );
 			break;
 		}
@@ -277,7 +277,7 @@ void Cpu::ExecuteInstruction( byte opcode ) {
 		}
 		case 0x26: {
 			// LD H, d8
-			HL.high.Set( PopPC() );
+			HL.high.Set( PopPC(gb) );
 			break;
 		}
 		case 0x27: {
@@ -313,7 +313,7 @@ void Cpu::ExecuteInstruction( byte opcode ) {
 		}
 		case 0x28: {
 			// JR Z, r8
-			int8 jump = (int8)PopPC();
+			int8 jump = (int8)PopPC(gb);
 			if ( GetZ() ) {
 				uint16 addr = PC + jump;
 				PC = addr;
@@ -328,7 +328,7 @@ void Cpu::ExecuteInstruction( byte opcode ) {
 		}
 		case 0x2a: {
 			// LD A, (HL+)
-			A.Set( mem->Read( HL.Get() ) );
+			A.Set( gb->Read( HL.Get() ) );
 			Inc16( HL );
 			break;
 		}
@@ -349,7 +349,7 @@ void Cpu::ExecuteInstruction( byte opcode ) {
 		}
 		case 0x2e: {
 			// LD L, d8
-			HL.low.Set( PopPC() );
+			HL.low.Set( PopPC(gb) );
 			break;
 		}
 		case 0x2f: {
@@ -361,7 +361,7 @@ void Cpu::ExecuteInstruction( byte opcode ) {
 		}
 		case 0x30: {
 			// JR NC, r8
-			int8 jump = (int8)PopPC();
+			int8 jump = (int8)PopPC(gb);
 			if ( !GetC() ) {
 				uint16 addr = PC + jump;
 				PC = addr;
@@ -371,12 +371,12 @@ void Cpu::ExecuteInstruction( byte opcode ) {
 		}
 		case 0x31: {
 			// LD SP, d16
-			SP.Set( PopPC16() );
+			SP.Set( PopPC16(gb) );
 			break;
 		}
 		case 0x32: {
 			// LD (HL-), A
-			mem->Write( HL.Get(), A.Get() );
+			gb->Write( HL.Get(), A.Get() );
 			Dec16( HL );
 			break;
 		}
@@ -389,9 +389,9 @@ void Cpu::ExecuteInstruction( byte opcode ) {
 			// INC (HL)
 			// We are using A as a temporary register for the value pointed to by HL
 			byte previousA = A.Get();
-			A.Set( mem->Read( HL.Get() ) );
+			A.Set( gb->Read( HL.Get() ) );
 			Inc( A );
-			mem->Write( HL.Get(), A.Get() );
+			gb->Write( HL.Get(), A.Get() );
 			A.Set( previousA );
 			break;
 		}
@@ -399,15 +399,15 @@ void Cpu::ExecuteInstruction( byte opcode ) {
 			// DEC (HL)
 			// We are using A as a temporary register for the value pointed to by HL
 			byte previousA = A.Get();
-			A.Set( mem->Read( HL.Get() ) );
+			A.Set( gb->Read( HL.Get() ) );
 			Dec( A );
-			mem->Write( HL.Get(), A.Get() );
+			gb->Write( HL.Get(), A.Get() );
 			A.Set( previousA );
 			break;
 		}
 		case 0x36: {
 			// LD (HL), d8
-			mem->Write( HL.Get(), PopPC() );
+			gb->Write( HL.Get(), PopPC(gb) );
 			break;
 		}
 		case 0x37: {
@@ -419,7 +419,7 @@ void Cpu::ExecuteInstruction( byte opcode ) {
 		}
 		case 0x38: {
 			// JR C, r8
-			int8 jump = (int8)PopPC();
+			int8 jump = (int8)PopPC(gb);
 			if ( GetC() ) {
 				uint16 addr = PC + jump;
 				PC = addr;
@@ -434,7 +434,7 @@ void Cpu::ExecuteInstruction( byte opcode ) {
 		}
 		case 0x3a: {
 			// LD A, (HL-)
-			A.Set( mem->Read( HL.Get() ) );
+			A.Set( gb->Read( HL.Get() ) );
 			Dec16( HL );
 			break;
 		}
@@ -455,7 +455,7 @@ void Cpu::ExecuteInstruction( byte opcode ) {
 		}
 		case 0x3e: {
 			// LD A, d8
-			A.Set( PopPC() );
+			A.Set( PopPC(gb) );
 			break;
 		}
 		case 0x3f: {
@@ -497,7 +497,7 @@ void Cpu::ExecuteInstruction( byte opcode ) {
 		}
 		case 0x46: {
 			// LD B, (HL)
-			BC.high.Set( mem->Read( HL.Get() ) );
+			BC.high.Set( gb->Read( HL.Get() ) );
 			break;
 		}
 		case 0x47: {
@@ -537,7 +537,7 @@ void Cpu::ExecuteInstruction( byte opcode ) {
 		}
 		case 0x4e: {
 			// LD C, (HL)
-			BC.low.Set( mem->Read( HL.Get() ) );
+			BC.low.Set( gb->Read( HL.Get() ) );
 			break;
 		}
 		case 0x4f: {
@@ -577,7 +577,7 @@ void Cpu::ExecuteInstruction( byte opcode ) {
 		}
 		case 0x56: {
 			// LD D, (HL)
-			DE.high.Set( mem->Read( HL.Get() ) );
+			DE.high.Set( gb->Read( HL.Get() ) );
 			break;
 		}
 		case 0x57: {
@@ -617,7 +617,7 @@ void Cpu::ExecuteInstruction( byte opcode ) {
 		}
 		case 0x5e: {
 			// LD E, (HL)
-			DE.low.Set( mem->Read( HL.Get() ) );
+			DE.low.Set( gb->Read( HL.Get() ) );
 			break;
 		}
 		case 0x5f: {
@@ -657,7 +657,7 @@ void Cpu::ExecuteInstruction( byte opcode ) {
 		}
 		case 0x66: {
 			// LD H, (HL)
-			HL.high.Set( mem->Read( HL.Get() ) );
+			HL.high.Set( gb->Read( HL.Get() ) );
 			break;
 		}
 		case 0x67: {
@@ -697,7 +697,7 @@ void Cpu::ExecuteInstruction( byte opcode ) {
 		}
 		case 0x6e: {
 			// LD L, (HL)
-			HL.low.Set( mem->Read( HL.Get() ) );
+			HL.low.Set( gb->Read( HL.Get() ) );
 			break;
 		}
 		case 0x6f: {
@@ -707,32 +707,32 @@ void Cpu::ExecuteInstruction( byte opcode ) {
 		}
 		case 0x70: {
 			// LD (HL), B
-			mem->Write( HL.Get(), BC.high.Get() );
+			gb->Write( HL.Get(), BC.high.Get() );
 			break;
 		}
 		case 0x71: {
 			// LD (HL), C
-			mem->Write( HL.Get(), BC.low.Get() );
+			gb->Write( HL.Get(), BC.low.Get() );
 			break;
 		}
 		case 0x72: {
 			// LD (HL), D
-			mem->Write( HL.Get(), DE.high.Get() );
+			gb->Write( HL.Get(), DE.high.Get() );
 			break;
 		}
 		case 0x73: {
 			// LD (HL), E
-			mem->Write( HL.Get(), DE.low.Get() );
+			gb->Write( HL.Get(), DE.low.Get() );
 			break;
 		}
 		case 0x74: {
 			// LD (HL), H
-			mem->Write( HL.Get(), HL.high.Get() );
+			gb->Write( HL.Get(), HL.high.Get() );
 			break;
 		}
 		case 0x75: {
 			// LD (HL), L
-			mem->Write( HL.Get(), HL.low.Get() );
+			gb->Write( HL.Get(), HL.low.Get() );
 			break;
 		}
 		case 0x76: {
@@ -742,7 +742,7 @@ void Cpu::ExecuteInstruction( byte opcode ) {
 		}
 		case 0x77: {
 			// LD (HL), A
-			mem->Write( HL.Get(), A.Get() );
+			gb->Write( HL.Get(), A.Get() );
 			break;
 		}
 		case 0x78: {
@@ -777,7 +777,7 @@ void Cpu::ExecuteInstruction( byte opcode ) {
 		}
 		case 0x7e: {
 			// LD A, (HL)
-			A.Set( mem->Read( HL.Get() ) );
+			A.Set( gb->Read( HL.Get() ) );
 			break;
 		}
 		case 0x7f: {
@@ -817,7 +817,7 @@ void Cpu::ExecuteInstruction( byte opcode ) {
 		}
 		case 0x86: {
 			// ADD A,(HL)
-			Add( A, mem->Read( HL.Get() ), false );
+			Add( A, gb->Read( HL.Get() ), false );
 			break;
 		}
 		case 0x87: {
@@ -857,7 +857,7 @@ void Cpu::ExecuteInstruction( byte opcode ) {
 		}
 		case 0x8e: {
 			// ADC A,(HL)
-			Add( A, mem->Read( HL.Get() ), true );
+			Add( A, gb->Read( HL.Get() ), true );
 			break;
 		}
 		case 0x8f: {
@@ -897,7 +897,7 @@ void Cpu::ExecuteInstruction( byte opcode ) {
 		}
 		case 0x96: {
 			// SUB A, (HL)
-			Sub( A, mem->Read( HL.Get() ), false );
+			Sub( A, gb->Read( HL.Get() ), false );
 			break;
 		}
 		case 0x97: {
@@ -937,7 +937,7 @@ void Cpu::ExecuteInstruction( byte opcode ) {
 		}
 		case 0x9e: {
 			// SBC A,(HL)
-			Sub( A, mem->Read( HL.Get() ), true );
+			Sub( A, gb->Read( HL.Get() ), true );
 			break;
 		}
 		case 0x9f: {
@@ -977,7 +977,7 @@ void Cpu::ExecuteInstruction( byte opcode ) {
 		}
 		case 0xa6: {
 			// AND A, (HL)
-			And( A, mem->Read( HL.Get() ) );
+			And( A, gb->Read( HL.Get() ) );
 			break;
 		}
 		case 0xa7: {
@@ -1017,7 +1017,7 @@ void Cpu::ExecuteInstruction( byte opcode ) {
 		}
 		case 0xae: {
 			// XOR A, (HL)
-			Xor( A, mem->Read( HL.Get() ) );
+			Xor( A, gb->Read( HL.Get() ) );
 			break;
 		}
 		case 0xaf: {
@@ -1057,7 +1057,7 @@ void Cpu::ExecuteInstruction( byte opcode ) {
 		}
 		case 0xb6: {
 			// OR (HL)
-			Or( A, mem->Read( HL.Get() ) );
+			Or( A, gb->Read( HL.Get() ) );
 			break;
 		}
 		case 0xb7: {
@@ -1097,7 +1097,7 @@ void Cpu::ExecuteInstruction( byte opcode ) {
 		}
 		case 0xbe: {
 			// CP (HL)
-			Cp( A, mem->Read( HL.Get() ) );
+			Cp( A, gb->Read( HL.Get() ) );
 			break;
 		}
 		case 0xbf: {
@@ -1108,19 +1108,19 @@ void Cpu::ExecuteInstruction( byte opcode ) {
 		case 0xc0: {
 			// RET NZ
 			if ( !GetZ() ) {
-				Ret();
+				Ret(gb);
 				additionnalTicks += 12;
 			}
 			break;
 		}
 		case 0xc1: {
 			// POP BC
-			BC.Set( PopStack() );
+			BC.Set( PopStack(gb) );
 			break;
 		}
 		case 0xc2: {
 			// JP NZ, a16
-			uint16 jump = PopPC16();
+			uint16 jump = PopPC16(gb);
 			if ( !GetZ() ) {
 				PC = jump;
 				additionnalTicks += 4;
@@ -1129,49 +1129,49 @@ void Cpu::ExecuteInstruction( byte opcode ) {
 		}
 		case 0xc3: {
 			// JP a16
-			PC = PopPC16();
+			PC = PopPC16(gb);
 			break;
 		}
 		case 0xc4: {
 			// CALL NZ
-			uint16 jump = PopPC16();
+			uint16 jump = PopPC16(gb);
 			if ( !GetZ() ) {
-				Call( jump );
+				Call( jump, gb );
 				additionnalTicks += 12;
 			}
 			break;
 		}
 		case 0xc5: {
 			// PUSH BC
-			PushStack( BC.Get() );
+			PushStack( BC.Get(), gb );
 			break;
 		}
 		case 0xc6: {
 			// ADD A, d8
-			Add( A, PopPC(), false );
+			Add( A, PopPC(gb), false );
 			break;
 		}
 		case 0xc7: {
 			// RST 0x00
-			Call( 0x0000 );
+			Call( 0x0000, gb );
 			break;
 		}
 		case 0xc8: {
 			// RET Z
 			if ( GetZ() ) {
-				Ret();
+				Ret(gb);
 				additionnalTicks += 12;
 			}
 			break;
 		}
 		case 0xc9: {
 			// RET
-			Ret();
+			Ret(gb);
 			break;
 		}
 		case 0xca: {
 			// JP Z, a16
-			uint16 jump = PopPC16();
+			uint16 jump = PopPC16(gb);
 			if ( GetZ() ) {
 				PC = jump;
 				additionnalTicks += 4;
@@ -1180,49 +1180,49 @@ void Cpu::ExecuteInstruction( byte opcode ) {
 		}
 		case 0xcb: {
 			// PREFIX CB
-			additionnalTicks += ExecuteCBOPCode( this, PopPC() );
+			additionnalTicks += ExecuteCBOPCode( this, PopPC(gb), gb );
 			break;
 		}
 		case 0xcc: {
 			// CALL Z
-			uint16 jump = PopPC16();
+			uint16 jump = PopPC16(gb);
 			if ( GetZ() ) {
-				Call( jump );
+				Call( jump, gb );
 				additionnalTicks += 12;
 			}
 			break;
 		}
 		case 0xcd: {
 			// CALL a16
-			Call( PopPC16() );
+			Call( PopPC16(gb), gb );
 			break;
 		}
 		case 0xce: {
 			// ADC A, d8
-			Add( A, PopPC(), true );
+			Add( A, PopPC(gb), true );
 			break;
 		}
 		case 0xcf: {
 			// RST 0x08
-			Call( 0x0008 );
+			Call( 0x0008, gb );
 			break;
 		}
 		case 0xd0: {
 			// RET NC
 			if ( !GetC() ) {
-				Ret();
+				Ret(gb);
 				additionnalTicks += 12;
 			}
 			break;
 		}
 		case 0xd1: {
 			// POP DE
-			DE.Set( PopStack() );
+			DE.Set( PopStack(gb) );
 			break;
 		}
 		case 0xd2: {
 			// JP NC, a16
-			uint16 jump = PopPC16();
+			uint16 jump = PopPC16(gb);
 			if ( !GetC() ) {
 				PC = jump;
 				additionnalTicks += 4;
@@ -1235,45 +1235,45 @@ void Cpu::ExecuteInstruction( byte opcode ) {
 		}
 		case 0xd4: {
 			// CALL NC
-			uint16 jump = PopPC16();
+			uint16 jump = PopPC16(gb);
 			if ( !GetC() ) {
-				Call( jump );
+				Call( jump, gb );
 				additionnalTicks += 12;
 			}
 			break;
 		}
 		case 0xd5: {
 			// PUSH DE
-			PushStack( DE.Get() );
+			PushStack( DE.Get(), gb );
 			break;
 		}
 		case 0xd6: {
 			// SUB A, d8
-			Sub( A, PopPC(), false );
+			Sub( A, PopPC(gb), false );
 			break;
 		}
 		case 0xd7: {
 			// RST 0x10
-			Call( 0x0010 );
+			Call( 0x0010, gb );
 			break;
 		}
 		case 0xd8: {
 			// RET C
 			if ( GetC() ) {
-				Ret();
+				Ret(gb);
 				additionnalTicks += 12;
 			}
 			break;
 		}
 		case 0xd9: {
 			// RETI
-			Ret();
+			Ret(gb);
 			interuptsEnabled = true;
 			break;
 		}
 		case 0xda: {
 			// JP C, a16
-			uint16 jump = PopPC16();
+			uint16 jump = PopPC16(gb);
 			if ( GetC() ) {
 				PC = jump;
 				additionnalTicks += 4;
@@ -1286,9 +1286,9 @@ void Cpu::ExecuteInstruction( byte opcode ) {
 		}
 		case 0xdc: {
 			// CALL C
-			uint16 jump = PopPC16();
+			uint16 jump = PopPC16(gb);
 			if ( GetC() ) {
-				Call( jump );
+				Call( jump, gb );
 				additionnalTicks += 12;
 			}
 			break;
@@ -1299,27 +1299,27 @@ void Cpu::ExecuteInstruction( byte opcode ) {
 		}
 		case 0xde: {
 			// SBC A, d8
-			Sub( A, PopPC(), true );
+			Sub( A, PopPC(gb), true );
 			break;
 		}
 		case 0xdf: {
 			// RST 0x18
-			Call( 0x0018 );
+			Call( 0x0018, gb );
 			break;
 		}
 		case 0xe0: {
 			// LDH (a8), A
-			mem->Write( 0xFF00 + PopPC(), A.Get() );
+			gb->Write( 0xFF00 + PopPC(gb), A.Get() );
 			break;
 		}
 		case 0xe1: {
 			// POP HL
-			HL.Set( PopStack() );
+			HL.Set( PopStack(gb) );
 			break;
 		}
 		case 0xe2: {
 			// LD (C), A
-			mem->Write( 0xFF00 + BC.low.Get(), A.Get() );
+			gb->Write( 0xFF00 + BC.low.Get(), A.Get() );
 			break;
 		}
 		case 0xe3: {
@@ -1332,22 +1332,22 @@ void Cpu::ExecuteInstruction( byte opcode ) {
 		}
 		case 0xe5: {
 			// PUSH HL
-			PushStack( HL.Get() );
+			PushStack( HL.Get(), gb );
 			break;
 		}
 		case 0xe6: {
 			// AND A, d8
-			And( A, PopPC() );
+			And( A, PopPC(gb) );
 			break;
 		}
 		case 0xe7: {
 			// RST 0x20
-			Call( 0x0020 );
+			Call( 0x0020, gb );
 			break;
 		}
 		case 0xe8: {
 			// ADD SP, r8
-			Add16Signed( SP, PopPC() );
+			Add16Signed( SP, PopPC(gb) );
 			SetZ( false );
 			break;
 		}
@@ -1358,7 +1358,7 @@ void Cpu::ExecuteInstruction( byte opcode ) {
 		}
 		case 0xea: {
 			// LD (a16), A
-			mem->Write( PopPC16(), A.Get() );
+			gb->Write( PopPC16(gb), A.Get() );
 			break;
 		}
 		case 0xeb: {
@@ -1375,29 +1375,29 @@ void Cpu::ExecuteInstruction( byte opcode ) {
 		}
 		case 0xee: {
 			// XOR A, d8
-			Xor( A, PopPC() );
+			Xor( A, PopPC(gb) );
 			break;
 		}
 		case 0xef: {
 			// RST 0x28
-			Call( 0x0028 );
+			Call( 0x0028, gb );
 			break;
 		}
 		case 0xf0: {
 			// LDH A, (a8)
-			A.Set( mem->Read( 0xFF00 + PopPC() ) );
+			A.Set( gb->Read( 0xFF00 + PopPC(gb) ) );
 			break;
 		}
 		case 0xf1: {
 			// POP AF
-			uint16 val = PopStack();
+			uint16 val = PopStack(gb);
 			A.Set(val >> 8);
 			F.Set(val);
 			break;
 		}
 		case 0xf2: {
 			// LD A, (C)
-			A.Set( mem->Read( 0xFF00 + BC.low.Get() ) );
+			A.Set( gb->Read( 0xFF00 + BC.low.Get() ) );
 			break;
 		}
 		case 0xf3: {
@@ -1412,23 +1412,23 @@ void Cpu::ExecuteInstruction( byte opcode ) {
 		case 0xf5: {
 			// PUSH AF
 			uint16 val = ((uint16)(A.Get()) << 8) | F.Get();
-			PushStack( val );
+			PushStack( val, gb );
 			break;
 		}
 		case 0xf6: {
 			// OR A, d8
-			Or( A, PopPC() );
+			Or( A, PopPC(gb) );
 			break;
 		}
 		case 0xf7: {
 			// RST 0x30
-			Call( 0x0030 );
+			Call( 0x0030, gb );
 			break;
 		}
 		case 0xf8: {
 			// LD HL, SP+r8
 			HL.Set( SP.Get() );
-			Add16Signed( HL, PopPC() );
+			Add16Signed( HL, PopPC(gb) );
 			break;
 		}
 		case 0xf9: {
@@ -1438,7 +1438,7 @@ void Cpu::ExecuteInstruction( byte opcode ) {
 		}
 		case 0xfa: {
 			// LD A, (a16)
-			A.Set( mem->Read( PopPC16() ) );
+			A.Set( gb->Read( PopPC16(gb) ) );
 			break;
 		}
 		case 0xfb: {
@@ -1456,12 +1456,12 @@ void Cpu::ExecuteInstruction( byte opcode ) {
 		}
 		case 0xfe: {
 			// CP A, d8
-			Cp( A, PopPC() );
+			Cp( A, PopPC(gb) );
 			break;
 		}
 		case 0xff: {
 			// RST 0x38
-			Call( 0x0038 );
+			Call( 0x0038, gb );
 		}
 	}
 }

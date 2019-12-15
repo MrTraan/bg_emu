@@ -1,7 +1,7 @@
 #include <string.h>
 #include "ppu.h"
 #include "cpu.h"
-#include "memory.h"
+#include "gameboy.h"
 #include <imgui/imgui.h>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -47,22 +47,22 @@ void Ppu::AllocateBuffers(const Window & window) {
 	Reset();
 }
 
-bool Ppu::IsLcdOn() {
-	return BIT_IS_SET(mem->Read(0xff40), 7);
+bool Ppu::IsLcdOn(Gameboy * gb) {
+	return BIT_IS_SET(gb->Read(0xff40), 7);
 }
 
-void Ppu::Update(int cycles) {
-	byte status = mem->Read(0xff41);
+void Ppu::Update(int cycles, Gameboy * gb) {
+	byte status = gb->Read(0xff41);
 
-	if (!IsLcdOn()) {
+	if (!IsLcdOn(gb)) {
 		scanlineCounter = 456;
 		status &= 0xfc;
 		status = BIT_UNSET(status, 0);
 		status = BIT_UNSET(status, 1);
-		mem->Write(0xff41, status);
+		gb->Write(0xff41, status);
 		return;
 	}
-	byte currentLine = mem->Read(0xff44);
+	byte currentLine = gb->Read(0xff44);
 	byte currentMode = status & 0x3;
 	byte nextMode = 0;
 	bool requestInterupt = false;
@@ -83,7 +83,7 @@ void Ppu::Update(int cycles) {
 		status = BIT_SET(status, 0);
 		status = BIT_SET(status, 1);
 		if (nextMode != currentMode) {
-			DrawScanLine(currentLine);
+			DrawScanLine(currentLine, gb);
 		}
 	}
 	else {
@@ -92,60 +92,60 @@ void Ppu::Update(int cycles) {
 		status = BIT_UNSET(status, 1);
 		requestInterupt = BIT_IS_SET(status, 3);
 		if (nextMode != currentMode) {
-			mem->HDMATransfer();
+			gb->HDMATransfer();
 		}
 	}
 
 	if (requestInterupt && nextMode != currentMode) {
-		cpu->RaiseInterupt(1);
+		gb->RaiseInterupt(1);
 	}
 
-	if (currentLine == mem->Read(0xff45)) {
+	if (currentLine == gb->Read(0xff45)) {
 		status = BIT_SET(status, 2);
 		if (BIT_IS_SET(status, 6)) {
-			cpu->RaiseInterupt(1);
+			gb->RaiseInterupt(1);
 		}
 	}
 	else {
 		status = BIT_UNSET(status, 2);
 	}
 
-	mem->Write(0xff41, status);
+	gb->Write(0xff41, status);
 
 	////////////////
 
 	scanlineCounter -= cycles;
 
 	if (scanlineCounter <= 0) {
-		byte currentLine = mem->Read(0xff44) + 1;
-		mem->Write(0xff44, currentLine);
+		byte currentLine = gb->Read(0xff44) + 1;
+		gb->Write(0xff44, currentLine);
 		if (currentLine > 153) {
 			SwapBuffers();
-			mem->Write(0xff44, 0);
+			gb->Write(0xff44, 0);
 			currentLine = 0;
 		}
 
-		scanlineCounter += 456 * cpu->speed;
+		scanlineCounter += 456 * gb->cpu.speed;
 		if (currentLine == GB_SCREEN_HEIGHT) {
-			cpu->RaiseInterupt(0);
+			gb->RaiseInterupt(0);
 		}
 	}
 }
 
-void Ppu::DrawScanLine(int scanline) {
-	byte control = mem->Read(0xff40);
+void Ppu::DrawScanLine(int scanline, Gameboy * gb) {
+	byte control = gb->Read(0xff40);
 
-	if ((cpu->IsCGB() || BIT_IS_SET(control, 0)) && debugDrawTiles) {
-		DrawTiles(scanline, control);
+	if ((gb->cpu.IsCGB() || BIT_IS_SET(control, 0)) && debugDrawTiles) {
+		DrawTiles(scanline, control, gb);
 	}
 
 	if (BIT_IS_SET(control, 1) && debugDrawSprites) {
-		DrawSprites(scanline, control);
+		DrawSprites(scanline, control, gb);
 	}
 }
 
-void Ppu::PutPixel(byte x, byte y, byte tileAttr, byte colorIndex, byte palette, bool priority) {
-	if (cpu->IsCGB()) {
+void Ppu::PutPixel(byte x, byte y, byte tileAttr, byte colorIndex, byte palette, bool priority, Gameboy * gb) {
+	if (gb->cpu.IsCGB()) {
 		DEBUG_BREAK;
 	}
 	else {
@@ -170,12 +170,12 @@ void Ppu::SwapBuffers() {
 	workBuffer->texture.Clear();
 }
 
-void Ppu::DrawTiles(int scanline, byte control) {
+void Ppu::DrawTiles(int scanline, byte control, Gameboy * gb) {
 	// Draw tiles
-	byte scrollY = mem->Read(0xff42);
-	byte scrollX = mem->Read(0xff43);
-	byte windowY = mem->Read(0xff4a);
-	byte windowX = mem->Read(0xff4b) - 7;
+	byte scrollY = gb->Read(0xff42);
+	byte scrollX = gb->Read(0xff43);
+	byte windowY = gb->Read(0xff4a);
+	byte windowX = gb->Read(0xff4b) - 7;
 
 	uint16 tileData = 0x8800;
 	bool usingUnsigned = false;
@@ -185,7 +185,7 @@ void Ppu::DrawTiles(int scanline, byte control) {
 		usingUnsigned = true;
 	}
 	if (BIT_IS_SET(control, 5)) {
-		if (mem->Read(0xff44) >= windowY) {
+		if (gb->Read(0xff44) >= windowY) {
 			usingWindow = true; // Is current scanline inside the window?
 		}
 	}
@@ -196,7 +196,7 @@ void Ppu::DrawTiles(int scanline, byte control) {
 
 	byte yPos = usingWindow ? scanline - windowY : scanline + scrollY;
 	uint16 tileRow = (uint16)(yPos / 8) * 32;
-	byte palette = mem->Read(0xff47);
+	byte palette = gb->Read(0xff47);
 
 	memset(tileScanLine, 0, sizeof(tileScanLine));
 	// Draw one horizontal line
@@ -207,11 +207,11 @@ void Ppu::DrawTiles(int scanline, byte control) {
 
 		uint16 tileLocation;
 		if (usingUnsigned) {
-			int16 tileIndex = (int16)(mem->Read(tileAddr)); 
+			int16 tileIndex = (int16)(gb->Read(tileAddr)); 
 			tileLocation = tileData + (uint16)(tileIndex * 16) + 0x0000;
 		}
 		else {
-			int16 tileIndex = (int8)(mem->Read(tileAddr));
+			int16 tileIndex = (int8)(gb->Read(tileAddr));
 			tileLocation = (uint16)((int)tileData + (int)((tileIndex + 128) * 16)) + 0x0000;
 		}
 
@@ -223,33 +223,33 @@ void Ppu::DrawTiles(int scanline, byte control) {
 		//    Bit 6    Vertical Flip              (0=Normal, 1=Mirror vertically)
 		//    Bit 7    BG-to-OAM Priority         (0=Use OAM priority bit, 1=BG Priority)
 
-		byte tileAttr = mem->Read(tileAddr + 0x2000);
+		byte tileAttr = gb->Read(tileAddr + 0x2000);
 		bool useBank1 = BIT_IS_SET(tileAttr, 3);
 		bool hflip = BIT_IS_SET(tileAttr, 5);
 		bool vflip = BIT_IS_SET(tileAttr, 6);
 		bool priority = BIT_IS_SET(tileAttr, 7);
 
-		uint16 bankOffset = cpu->IsCGB() && useBank1 ? 0x2000 : 0x0000;
-		byte line = cpu->IsCGB() && vflip ? ((7 - yPos) % 8) * 2 : (yPos % 8) * 2;
+		uint16 bankOffset = gb->cpu.IsCGB() && useBank1 ? 0x2000 : 0x0000;
+		byte line = gb->cpu.IsCGB() && vflip ? ((7 - yPos) % 8) * 2 : (yPos % 8) * 2;
 
-		byte tileData1 = mem->Read(tileLocation + line + bankOffset);
-		byte tileData2 = mem->Read(tileLocation + line + bankOffset + 1);
+		byte tileData1 = gb->Read(tileLocation + line + bankOffset);
+		byte tileData2 = gb->Read(tileLocation + line + bankOffset + 1);
 
-		if (cpu->IsCGB() && hflip) {
+		if (gb->cpu.IsCGB() && hflip) {
 			xPos = 7 - xPos;
 		}
 		byte colorBit = (int8)((xPos % 8) - 7) * -1;
 		byte colorIndex = (BIT_VALUE(tileData2, colorBit) << 1) | BIT_VALUE(tileData1, colorBit);
 		// Draw if sprite has priority of if no pixel has been drawn there
-		PutPixel(x, scanline, tileAttr, colorIndex, palette, true);
+		PutPixel(x, scanline, tileAttr, colorIndex, palette, true, gb);
 		tileScanLine[x] = colorIndex;
 	}
 }
 
-void Ppu::DrawSprites(int scanline, byte control) {
+void Ppu::DrawSprites(int scanline, byte control, Gameboy * gb) {
 	int ySize = BIT_IS_SET(control, 2) ? 16 : 8;
-	byte palette1 = mem->Read(0xFF48);
-	byte palette2 = mem->Read(0xFF49);
+	byte palette1 = gb->Read(0xFF48);
+	byte palette2 = gb->Read(0xFF49);
 
 	int minX[GB_SCREEN_WIDTH];
 	memset(minX, 0, sizeof(minX));
@@ -257,7 +257,7 @@ void Ppu::DrawSprites(int scanline, byte control) {
 	for (uint16 sprite = 0; sprite < 40; sprite++) {
 		uint16 index = sprite * 4;
 
-		int yPos = (int)(mem->Read(0xfe00 + index)) - 16;
+		int yPos = (int)(gb->Read(0xfe00 + index)) - 16;
 		if (scanline < yPos || scanline >= (yPos + ySize)) {
 			continue;
 		}
@@ -267,16 +267,16 @@ void Ppu::DrawSprites(int scanline, byte control) {
 		}
 		lineSprites++;
 
-		int xPos = (int)(mem->Read(0xfe00 + index + 1)) - 8;
-		int tileLocation = mem->Read(0xfe00 + index + 2);
-		int spriteAttr = mem->Read(0xfe00 + index + 3);
+		int xPos = (int)(gb->Read(0xfe00 + index + 1)) - 8;
+		int tileLocation = gb->Read(0xfe00 + index + 2);
+		int spriteAttr = gb->Read(0xfe00 + index + 3);
 
 		bool useBank1 = BIT_IS_SET(spriteAttr, 3);
 		bool hflip = BIT_IS_SET(spriteAttr, 5);
 		bool vflip = BIT_IS_SET(spriteAttr, 6);
 		bool priority = !BIT_IS_SET(spriteAttr, 7); // TODO: unused for now
 
-		uint16 bankOffset = cpu->IsCGB() && useBank1 ? 0x2000 : 0x0;
+		uint16 bankOffset = gb->cpu.IsCGB() && useBank1 ? 0x2000 : 0x0;
 
 		int line = scanline - yPos;
 		if (vflip) {
@@ -284,8 +284,8 @@ void Ppu::DrawSprites(int scanline, byte control) {
 		}
 
 		uint16 dataAddr = ((uint16)tileLocation * 16) + (line * 2) + bankOffset;
-		byte spriteData1 = mem->VRAM[dataAddr];
-		byte spriteData2 = mem->VRAM[dataAddr + 1];
+		byte spriteData1 = gb->mem.VRAM[dataAddr];
+		byte spriteData2 = gb->mem.VRAM[dataAddr + 1];
 
 		// Draw the sprite line
 		for (byte tilePixel = 0; tilePixel < 8; tilePixel++) {
@@ -294,7 +294,7 @@ void Ppu::DrawSprites(int scanline, byte control) {
 				continue;
 			}
 			// Check if something was already drawn here
-			if (minX[pixel] != 0 && (cpu->IsCGB() || minX[pixel] <= xPos + 100)) {
+			if (minX[pixel] != 0 && (gb->cpu.IsCGB() || minX[pixel] <= xPos + 100)) {
 				continue;
 			}
 
@@ -306,10 +306,10 @@ void Ppu::DrawSprites(int scanline, byte control) {
 				continue;
 			}
 
-			if (cpu->IsCGB()) {
+			if (gb->cpu.IsCGB()) {
 				DEBUG_BREAK;
 			} else {
-				PutPixel((byte)pixel, (byte)scanline, spriteAttr, colorIndex, BIT_IS_SET(spriteAttr, 4) ? palette2 : palette1, priority);
+				PutPixel((byte)pixel, (byte)scanline, spriteAttr, colorIndex, BIT_IS_SET(spriteAttr, 4) ? palette2 : palette1, priority, gb);
 			}
 
 			minX[pixel] = xPos + 100;
@@ -317,20 +317,20 @@ void Ppu::DrawSprites(int scanline, byte control) {
 	}
 }
 
-void Ppu::DebugDraw() {
+void Ppu::DebugDraw(Gameboy * gb) {
 	//ImGui::Image((void*)(ppu->frontBuffer->textureHandler), ImVec2(GB_SCREEN_WIDTH, GB_SCREEN_HEIGHT), ImVec2(0,0), ImVec2(1,1), ImVec4(1.0f,1.0f,1.0f,1.0f), ImVec4(1.0f,1.0f,1.0f,0.5f));
 	const char * palettesNames[] = { "Green", "Grey", "Blue" };
 	ImGui::Combo("Palette theme", &selectedPalette, palettesNames, 3);
 	ImGui::Checkbox( "Draw tiles", &(Ppu::debugDrawTiles) );
 	ImGui::SameLine();
 	ImGui::Checkbox( "Draw sprites", &(Ppu::debugDrawSprites) );
-	byte scrollY = mem->Read(0xff42);
-	byte scrollX = mem->Read(0xff43);
+	byte scrollY = gb->Read(0xff42);
+	byte scrollX = gb->Read(0xff43);
 	ImGui::Text("Scroll X %d Scroll Y %d", scrollX, scrollY);
 
 	ImGui::Checkbox( "Draw background texture", &drawBackgroundTexture );
 	if (drawBackgroundTexture) {
-		DrawFullBackgroundToTexture(backgroundTexture, backgroundTexture.width, backgroundTexture.height);
+		DrawFullBackgroundToTexture(backgroundTexture, backgroundTexture.width, backgroundTexture.height, gb);
 		backgroundTexture.Update();
 		ImGui::Image((void*)(backgroundTexture.textureHandler), ImVec2(backgroundTexture.width, backgroundTexture.height), ImVec2(0,0), ImVec2(1,1), ImVec4(1.0f,1.0f,1.0f,1.0f), ImVec4(1.0f,1.0f,1.0f,0.5f));
 	}
@@ -338,17 +338,17 @@ void Ppu::DebugDraw() {
 	ImGui::Checkbox( "Draw tileset", &drawTileset);
 	if (drawTileset) {
 		tilesetTexture.Clear();
-		DrawTilesetToTexture(tilesetTexture);
+		DrawTilesetToTexture(tilesetTexture, gb);
 		tilesetTexture.Update();
 		ImGui::Image((void*)(tilesetTexture.textureHandler), ImVec2(tilesetTexture.width, tilesetTexture.height), ImVec2(0,0), ImVec2(1,1), ImVec4(1.0f,1.0f,1.0f,1.0f), ImVec4(1.0f,1.0f,1.0f,0.5f));
 	}
 	
 }
 
-void Ppu::DrawFullBackgroundToTexture(SimpleTexture & texture, int width, int height) {
-	byte scrollY = mem->Read(0xff42);
-	byte scrollX = mem->Read(0xff43);
-	byte control = mem->Read(0xff40);
+void Ppu::DrawFullBackgroundToTexture(SimpleTexture & texture, int width, int height, Gameboy * gb) {
+	byte scrollY = gb->Read(0xff42);
+	byte scrollX = gb->Read(0xff43);
+	byte control = gb->Read(0xff40);
 	uint16 tileData = 0x8800;
 	bool usingUnsigned = false;
 	if ( BIT_IS_SET( control, 4 ) ) {
@@ -362,7 +362,7 @@ void Ppu::DrawFullBackgroundToTexture(SimpleTexture & texture, int width, int he
 
 	for ( int yPos = 0; yPos < height; yPos++ ) {
 		uint16	tileRow = ( uint16 )( yPos / 8 ) * 32;
-		byte	palette = mem->Read( 0xff47 );
+		byte	palette = gb->Read( 0xff47 );
 
 		// Draw one horizontal line
 		for ( int x = 0; x < width; x++ ) {
@@ -372,10 +372,10 @@ void Ppu::DrawFullBackgroundToTexture(SimpleTexture & texture, int width, int he
 
 			uint16 tileLocation;
 			if ( usingUnsigned ) {
-				int16 tileIndex = ( int16 )( mem->VRAM[ tileAddr - 0x8000 ] ); // @HARDCODED this should use mem->Read()
+				int16 tileIndex = ( int16 )( gb->mem.VRAM[ tileAddr - 0x8000 ] ); // @HARDCODED this should use gb->Read()
 				tileLocation = tileData + ( uint16 )( tileIndex * 16 );
 			} else {
-				int16 tileIndex = ( int8 )( mem->VRAM[ tileAddr - 0x8000 ] ); // @HARDCODED this should use mem->Read()
+				int16 tileIndex = ( int8 )( gb->mem.VRAM[ tileAddr - 0x8000 ] ); // @HARDCODED this should use gb->Read()
 				tileLocation = ( uint16 )( (int)tileData + (int)( ( tileIndex + 128 ) * 16 ) );
 			}
 
@@ -387,19 +387,19 @@ void Ppu::DrawFullBackgroundToTexture(SimpleTexture & texture, int width, int he
 			//    Bit 6    Vertical Flip              (0=Normal, 1=Mirror vertically)
 			//    Bit 7    BG-to-OAM Priority         (0=Use OAM priority bit, 1=BG Priority)
 
-			byte tileAttr = mem->VRAM[ tileAddr - 0x6000 ];
+			byte tileAttr = gb->mem.VRAM[ tileAddr - 0x6000 ];
 			bool useBank1 = BIT_IS_SET( tileAttr, 3 );
 			bool hflip = BIT_IS_SET( tileAttr, 5 );
 			bool vflip = BIT_IS_SET( tileAttr, 6 );
 			bool priority = BIT_IS_SET( tileAttr, 7 );
 
-			uint16	bankOffset = cpu->IsCGB() && useBank1 ? 0x6000 : 0x8000;
-			byte	line = cpu->IsCGB() && vflip ? ( ( 7 - yPos ) % 8 ) * 2 : ( yPos % 8 ) * 2;
+			uint16	bankOffset = gb->cpu.IsCGB() && useBank1 ? 0x6000 : 0x8000;
+			byte	line = gb->cpu.IsCGB() && vflip ? ( ( 7 - yPos ) % 8 ) * 2 : ( yPos % 8 ) * 2;
 
-			byte tileData1 = mem->VRAM[ tileLocation + line - bankOffset ];
-			byte tileData2 = mem->VRAM[ tileLocation + line - bankOffset + 1 ];
+			byte tileData1 = gb->mem.VRAM[ tileLocation + line - bankOffset ];
+			byte tileData2 = gb->mem.VRAM[ tileLocation + line - bankOffset + 1 ];
 
-			if ( cpu->IsCGB() && hflip ) {
+			if ( gb->cpu.IsCGB() && hflip ) {
 				xPos = 7 - xPos;
 			}
 			byte	colorBit = ( int8 )( ( xPos % 8 ) - 7 ) * -1;
@@ -421,14 +421,14 @@ void Ppu::DrawFullBackgroundToTexture(SimpleTexture & texture, int width, int he
 	}
 }
 
-void Ppu::DrawTilesetToTexture(SimpleTexture & texture) {
+void Ppu::DrawTilesetToTexture(SimpleTexture & texture, Gameboy * gb) {
 	int		x = 0;
 	int		y = 0;
-	byte	palette = mem->Read( 0xff47 );
+	byte	palette = gb->Read( 0xff47 );
 	int		line = 0;
 	for ( int i = 0x8000; i < 0x9800; i += 2 ) {
-		byte color1 = mem->Read( i );
-		byte color2 = mem->Read( i + 1 );
+		byte color1 = gb->Read( i );
+		byte color2 = gb->Read( i + 1 );
 		for ( int j = 7; j >= 0; j-- ) {
 			byte	colorIndex = ( BIT_VALUE( color2, j ) << 1 ) | ( BIT_VALUE( color1, j ) );
 			byte	highBit = colorIndex << 1 | 1;

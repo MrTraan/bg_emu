@@ -4,13 +4,10 @@
 #include "simple_texture.h"
 #include "gui/textured_rectangle.h"
 
-struct Memory;
-struct Cpu;
+struct Gameboy;
 struct Window;
 
 struct Ppu {
-	Memory * mem = nullptr;
-	Cpu * cpu = nullptr;
 	TexturedRectangle frontBuffer;
 	TexturedRectangle backBuffer;
 	TexturedRectangle * drawingBuffer = nullptr;
@@ -44,18 +41,18 @@ struct Ppu {
 	}
 
 	void SwapBuffers();
-	void Update(int cycles);
-	bool IsLcdOn();
+	void Update(int cycles, Gameboy * gb);
+	bool IsLcdOn(Gameboy * gb);
 
-	void DrawScanLine(int line);
-	void DrawTiles(int line, byte scanline);
-	void DrawSprites(int line, byte scanline);
+	void DrawScanLine(int line, Gameboy * gb);
+	void DrawTiles(int line, byte scanline, Gameboy * gb);
+	void DrawSprites(int line, byte scanline, Gameboy * gb);
 
-	void PutPixel(byte x, byte y, byte tileAttr, byte colorIndex, byte palette, bool priority);
+	void PutPixel(byte x, byte y, byte tileAttr, byte colorIndex, byte palette, bool priority, Gameboy * gb);
 
-	void DebugDraw();
-	void DrawFullBackgroundToTexture(SimpleTexture & texture, int width, int height);
-	void DrawTilesetToTexture(SimpleTexture & texture);
+	void DebugDraw(Gameboy * gb);
+	void DrawFullBackgroundToTexture(SimpleTexture & texture, int width, int height, Gameboy * gb);
+	void DrawTilesetToTexture(SimpleTexture & texture, Gameboy * gb);
 	SimpleTexture backgroundTexture;
 	SimpleTexture tilesetTexture;
 

@@ -12,8 +12,8 @@
 #include "SDL.h"
 
 #include "gb_emu.h"
+#include "gameboy.h"
 #include "cpu.h"
-#include "memory.h"
 #include "rom.h"
 #include "gui/window.h"
 #include "gui/keyboard.h"
@@ -25,41 +25,18 @@ void DrawUI();
 void DrawDebugWindow();
 
 static Window window;
-static MemoryEditor mem_edit;
-static Cartridge * cart;
-static Memory mem;
-Gb_Apu apu;
+static Gameboy gb;
 Stereo_Buffer soundBuffer;
 Sound_Queue sound;
 
-static Cpu cpu;
-static Ppu ppu;
-static bool shouldRun = true;
-static bool shouldStep = false;
-static int PCBreakpoint = -1;
-
 static void reset( const char * cartridgePath ) {
-	if ( cart != nullptr ) {
-		delete cart;
-	}
-	cart = Cartridge::LoadFromFile(cartridgePath);
-	mem.cart = cart;
-	mem.cpu = &cpu;
-	mem.apu = &apu;
-	cpu.mem = &mem;
-	ppu.mem = &mem;
-	ppu.cpu = &cpu;
+	gb.LoadCart(cartridgePath);
 
-	Keyboard::s_mem = &mem;
-	Keyboard::s_cpu = &cpu;
+	Keyboard::s_gb = &gb;
 
 	soundBuffer.clear();
-	apu.reset();
 	sound.stop();
 	gbemu_assert(sound.start(sample_rate, 2) == nullptr);
-	mem.Reset(cpu.skipBios);
-	cpu.Reset();
-	ppu.Reset();
 }
 
 void drop_callback(GLFWwindow * glWindow, int count, const char ** paths) {
@@ -71,8 +48,8 @@ void drop_callback(GLFWwindow * glWindow, int count, const char ** paths) {
 void windowResizeCallback(GLFWwindow * glWindow, int width, int height) {
 	window.Width = width;
 	window.Height = height;
-	ppu.frontBuffer.RefreshSize( window );
-	ppu.backBuffer.RefreshSize( window );
+	gb.ppu.frontBuffer.RefreshSize( window );
+	gb.ppu.backBuffer.RefreshSize( window );
 }
 
 std::vector<std::string> romFSPaths;
@@ -121,7 +98,7 @@ int main(int argc, char **argv)
         romPath = FS_BASE_PATH "/roms/Pokemon_Bleue.gb";
 	}
 	reset(romPath);
-	if (cart == nullptr) {
+	if (gb.cart == nullptr) {
 		return 1;
 	}
 
@@ -158,17 +135,17 @@ int main(int argc, char **argv)
 		return EXIT_FAILURE;
 	atexit(SDL_Quit);
 
-	apu.treble_eq(-20.0); // lower values muffle it more
+	gb.apu.treble_eq(-20.0); // lower values muffle it more
 	soundBuffer.bass_freq(461); // higher values simulate smaller speaker
 	// Set sample rate and check for out of memory error
-	apu.output(soundBuffer.center(), soundBuffer.left(), soundBuffer.right());
+	gb.apu.output(soundBuffer.center(), soundBuffer.left(), soundBuffer.right());
 	soundBuffer.clock_rate(4194304 * APU_OVERCLOCKING);
 	gbemu_assert(soundBuffer.set_sample_rate(sample_rate) == nullptr);
 
 	// Generate a few seconds of sound and play using SDL
 	bool show_demo_window = true;
 
-	ppu.AllocateBuffers( window );
+	gb.ppu.AllocateBuffers( window );
 
 	while (!window.ShouldClose()) {
 		double startTime = glfwGetTime();
@@ -184,35 +161,17 @@ int main(int argc, char **argv)
 			ImGui::ShowDemoWindow(&show_demo_window);
 		}
 
-		ppu.drawingBuffer->Draw();
+		gb.ppu.drawingBuffer->Draw();
 
 		DrawUI();
 
-		cpu.cpuTime = 0;
-		int maxClocksThisFrame = GBEMU_CLOCK_SPEED / 60;
-		if ( Keyboard::IsKeyDown( eKey::KEY_SPACE ) ) {
-			maxClocksThisFrame *= 10;
-		}
-		while (cpu.cpuTime < maxClocksThisFrame && (shouldRun || shouldStep)) {
-			int clocks = 4;
-			if (!cpu.isOnHalt) {
-				clocks = cpu.ExecuteNextOPCode();
-			}
-			cpu.cpuTime += clocks;
-			ppu.Update(clocks);
-			cpu.UpdateTimer( clocks );
-			cpu.cpuTime += cpu.ProcessInterupts();
-			if (PCBreakpoint == cpu.PC) {
-				shouldRun = false;
-			}
-			shouldStep = false;
-		}
+		gb.RunOneFrame();
 
 		int const buf_size = 4096;
 		static blip_sample_t buf[buf_size];
 
-		bool stereo = apu.end_frame(cpu.cpuTime * APU_OVERCLOCKING);
-		soundBuffer.end_frame(cpu.cpuTime * APU_OVERCLOCKING, stereo);
+		bool stereo = gb.apu.end_frame(gb.cpu.cpuTime * APU_OVERCLOCKING);
+		soundBuffer.end_frame(gb.cpu.cpuTime * APU_OVERCLOCKING, stereo);
 		if (soundBuffer.samples_avail() >= buf_size){ 
 			// Play whatever samples are available
 			long count = soundBuffer.read_samples(buf, buf_size);
@@ -229,8 +188,8 @@ int main(int argc, char **argv)
 	ImGui_ImplGlfw_Shutdown();
 	ImGui::DestroyContext();
 
-	ppu.DestroyBuffers();
-	delete cart;
+	gb.ppu.DestroyBuffers();
+	delete gb.cart;
 	window.Destroy();
 	return 0;
 }
@@ -254,14 +213,11 @@ void DrawUI() {
 			}
             ImGui::EndMenu();
         }
-		if (ImGui::MenuItem(shouldRun ? "Pause" : "Run")) {
-			shouldRun = !shouldRun;
+		if (ImGui::MenuItem(gb.shouldRun ? "Pause" : "Run")) {
+			gb.shouldRun = !gb.shouldRun;
 		}
 		if (ImGui::MenuItem("Reset")) {
-			// TODO: Use reset function
-			cpu.Reset();
-			mem.Reset(cpu.skipBios);
-			ppu.Reset();
+			gb.Reset();
 		}
 		if (ImGui::MenuItem("Debug")) {
 			showDebugWindow = !showDebugWindow;
@@ -275,161 +231,6 @@ void DrawUI() {
         ImGui::EndMainMenuBar();
     }
 	if ( showDebugWindow ) {
-		DrawDebugWindow();
-	}
-}
-void DrawDebugWindow() {
-	static float volume = 50.0f;
-	if (ImGui::SliderFloat("Volume", &volume, 0.0f, 100.0f)) {
-		if (volume > 100.0f) {
-			volume = 100.0f;
-		}
-		apu.volume(volume / 100);
-	}
-	ImGui::Columns(4, "registers");
-	ImGui::Separator();
-	ImGui::Text("A"); ImGui::NextColumn();
-	ImGui::Text("F"); ImGui::NextColumn();
-	ImGui::Text("B"); ImGui::NextColumn();
-	ImGui::Text("C"); ImGui::NextColumn();
-	ImGui::Separator();
-	ImGui::Text("0x%02x", cpu.A.Get()); ImGui::NextColumn();
-	ImGui::Text("0x%02x", cpu.F.Get()); ImGui::NextColumn();
-	ImGui::Text("0x%02x", cpu.BC.high.Get()); ImGui::NextColumn();
-	ImGui::Text("0x%02x", cpu.BC.low.Get()); ImGui::NextColumn();
-	ImGui::Columns(2, "registers 16bits");
-	ImGui::Separator();
-	ImGui::Text("0x%04x", (uint16)(cpu.A.Get() << 8) | (cpu.F.Get())); ImGui::NextColumn();
-	ImGui::Text("0x%04x", cpu.BC.Get()); ImGui::NextColumn();
-	ImGui::Columns(4, "registers");
-	ImGui::Separator();
-	ImGui::Text("D"); ImGui::NextColumn();
-	ImGui::Text("E"); ImGui::NextColumn();
-	ImGui::Text("H"); ImGui::NextColumn();
-	ImGui::Text("L"); ImGui::NextColumn();
-	ImGui::Separator();
-	ImGui::Text("0x%02x", cpu.DE.high.Get()); ImGui::NextColumn();
-	ImGui::Text("0x%02x", cpu.DE.low.Get()); ImGui::NextColumn();
-	ImGui::Text("0x%02x", cpu.HL.high.Get()); ImGui::NextColumn();
-	ImGui::Text("0x%02x", cpu.HL.low.Get()); ImGui::NextColumn();
-	ImGui::Columns(2, "registers 16bits");
-	ImGui::Separator();
-	ImGui::Text("0x%04x", cpu.DE.Get()); ImGui::NextColumn();
-	ImGui::Text("0x%04x", cpu.HL.Get()); ImGui::NextColumn();
-	ImGui::Columns(2, "PC and SP");
-	ImGui::Separator();
-	ImGui::Text("PC"); ImGui::NextColumn();
-	ImGui::Text("SP"); ImGui::NextColumn();
-	ImGui::Separator();
-	ImGui::Text("0x%04x", cpu.PC); ImGui::NextColumn();
-	ImGui::Text("0x%04x", cpu.SP.Get()); ImGui::NextColumn();
-	ImGui::Columns(4, "flags");
-	ImGui::Separator();
-	ImGui::Text("Z"); ImGui::NextColumn();
-	ImGui::Text("N"); ImGui::NextColumn();
-	ImGui::Text("H"); ImGui::NextColumn();
-	ImGui::Text("C"); ImGui::NextColumn();
-	ImGui::Separator();
-	ImGui::Text("%d", cpu.GetZ()); ImGui::NextColumn();
-	ImGui::Text("%d", cpu.GetN()); ImGui::NextColumn();
-	ImGui::Text("%d", cpu.GetH()); ImGui::NextColumn();
-	ImGui::Text("%d", cpu.GetC()); ImGui::NextColumn();
-
-	ImGui::Columns(1);
-	ImGui::Separator();
-	ImGui::Text("Last instruction: %s", cpu.lastInstructionName);
-	ImGui::Text("Next instruction: %s", Cpu::s_instructionsNames[mem.Read(cpu.PC)]);
-	ImGui::Checkbox( "Skip bios", &(cpu.skipBios) );
-
-	static char buf[64] = "";
-	ImGui::InputText("Break at PC: ", buf, 64, ImGuiInputTextFlags_CharsHexadecimal | ImGuiInputTextFlags_CharsUppercase);
-	if (buf[0] != '\0') {
-		PCBreakpoint = strtol(buf, nullptr, 16);
-	}
-	if (ImGui::Button("Step")) {
-		shouldStep = true;
-	}
-	
-	static int showRomCode = false;
-	if (ImGui::Button(showRomCode ? "Hide ROM Code" : "Show ROM Code")) {
-		showRomCode = !showRomCode;
-	}
-	ImGui::SameLine();
-	static int showMemoryInspector = false;
-	if (ImGui::Button(showMemoryInspector ? "Hide Memory" : "Show Memory")) {
-		showMemoryInspector = !showMemoryInspector;
-	}
-
-	if (ImGui::TreeNode("Pixel Processing Unit")) {
-		ppu.DebugDraw();
-		ImGui::TreePop();
-	}
-	if ( cart != nullptr ) {
-		if (ImGui::TreeNode("Cartridge")) {
-			cart->DebugDraw();
-			ImGui::TreePop();
-		}
-	}
-
-	if (showRomCode) {
-		ImGui::Begin("ROM Code");
-		ImGui::BeginGroup();
-
-		ImGui::BeginChild(ImGui::GetID((void*)(intptr_t)0));
-		for (int addr = 0; addr < 0x8000; addr++)
-		{
-			byte romValue = mem.Read(addr);
-
-			if (romValue == 0) {
-				continue; // Displaying a large list cause a huge performance hit, so we might as well not display NOP
-			}
-
-			const char * instructionName = Cpu::s_instructionsNames[romValue];
-			byte instructionSize = Cpu::s_instructionsSize[romValue];
-
-			bool colored = false;
-			if (addr == cpu.PC)
-			{
-				colored = true;
-				ImGui::SetScrollHereY(0.5f); // 0.0f:top, 0.5f:center, 1.0f:bottom
-			}
-			if (instructionSize == 1) {
-				if (colored) {
-					ImGui::TextColored(ImVec4(1, 1, 0, 1), "0x%04x %s", addr, instructionName);
-				} else {
-					ImGui::Text("0x%04x %s", addr, instructionName);
-				}
-			}
-			if (instructionSize == 2) {
-				byte arg = mem.Read(addr + 1);
-				if (colored) {
-					ImGui::TextColored(ImVec4(1, 1, 0, 1), "0x%04x %s %#x", addr, instructionName, arg);
-				} else {
-					ImGui::Text("0x%04x %s %#x", addr, instructionName, arg);
-				}
-				addr++;
-			}
-			if (instructionSize == 3) {
-				byte val1 = mem.Read(addr + 1);
-				byte val2 = mem.Read(addr + 2);
-				uint16 arg = ((uint16)val2 << 8) | val1;
-				if (colored) {
-					ImGui::TextColored(ImVec4(1, 1, 0, 1), "0x%04x %s %#x", addr, instructionName, arg);
-				} else {
-					ImGui::Text("0x%04x %s %#x", addr, instructionName, arg);
-				}
-				addr += 2;
-			}
-		}
-		ImGui::EndChild();
-		ImGui::EndGroup();
-		ImGui::End();
-	}
-
-	if (showMemoryInspector) {
-		mem_edit.DrawWindow("VRAM", mem.VRAM, 0x4000, 0x0);
-		mem_edit.DrawWindow("HighRAM", mem.highRAM, 0x100, 0x0);
-		mem_edit.DrawWindow("OAM", mem.OAM, 0xa0, 0x0);
-		mem_edit.DrawWindow("ROM", mem.cart->GetRawMemory(), mem.cart->GetRawMemorySize(), 0x0);
+		gb.DebugDraw();
 	}
 }

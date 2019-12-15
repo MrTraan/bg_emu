@@ -1,6 +1,6 @@
 #include "cb_opcodes.h"
 #include "cpu.h"
-#include "memory.h"
+#include "gameboy.h"
 
 static int CBopcodeCyclesCost[0x100] = {
 	//  0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f
@@ -112,7 +112,7 @@ void Bit(Cpu* cpu, byte val, byte bit) {
 	cpu->SetH(true);
 }
 
-int ExecuteCBOPCode(Cpu* cpu, uint16 opcode) {
+int ExecuteCBOPCode(Cpu* cpu, uint16 opcode, Gameboy * gb) {
 	uint16 opBase = opcode - (opcode % 8);
 	uint16 opOffset = opcode % 8;
 
@@ -136,7 +136,7 @@ int ExecuteCBOPCode(Cpu* cpu, uint16 opcode) {
 		input = cpu->HL.low.Get();
 	}
 	else if (opOffset == 6) {
-		input = cpu->mem->Read(cpu->HL.Get());
+		input = gb->Read(cpu->HL.Get());
 	}
 	else if (opOffset == 7) {
 		input = cpu->A.Get();
@@ -205,7 +205,7 @@ int ExecuteCBOPCode(Cpu* cpu, uint16 opcode) {
 			cpu->HL.low.Set(output);
 		}
 		else if (opOffset == 6) {
-			cpu->mem->Write(cpu->HL.Get(), output);
+			gb->Write(cpu->HL.Get(), output);
 		}
 		else if (opOffset == 7) {
 			cpu->A.Set(output);

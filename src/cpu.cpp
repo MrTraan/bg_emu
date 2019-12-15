@@ -1,9 +1,7 @@
 #include <stdio.h>
 #include "cpu.h"
 #include "cb_opcodes.h"
-#include "memory.h"
-
-bool Cpu::skipBios = true;
+#include "gameboy.h"
 
 static int opcodeCyclesCost[] = {
 	//  0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f
@@ -26,9 +24,9 @@ static int opcodeCyclesCost[] = {
 };
 
 // Return Cycles used
-int Cpu::ExecuteNextOPCode() {
+int Cpu::ExecuteNextOPCode( Gameboy * gb) {
 	// All instructions are detailled here : https://www.pastraiser.com/cpu/gameboy/gameboy_opcodes.html
-	byte opcode = PopPC();
+	byte opcode = PopPC(gb);
 	int  ticksUsed = opcodeCyclesCost[opcode] * 4;
 	additionnalTicks = 0;
 	lastInstructionName = s_instructionsNames[opcode];
@@ -40,22 +38,22 @@ int Cpu::ExecuteNextOPCode() {
 	//if (startLogging)
 		//printf("0x%02x 0x%04x\n", opcode, PC - 1);
 
-	ExecuteInstruction( opcode );
+	ExecuteInstruction( opcode, gb );
 	return ticksUsed + additionnalTicks;
 }
 
-void Cpu::UpdateTimer(int clock) {
+void Cpu::UpdateTimer(int clock,  Gameboy * gb) {
 	divider += clock;
 	if (divider >= 255) {
 		divider -= 255;
-		byte div = mem->Read(DIV);
+		byte div = gb->Read(DIV);
 		if (div == 255)
-			mem->highRAM[DIV - 0xFF00] = 0;
+			gb->mem.highRAM[DIV - 0xFF00] = 0;
 		else
-			mem->highRAM[DIV - 0xFF00]++;
+			gb->mem.highRAM[DIV - 0xFF00]++;
 	}
 
-	byte tac = mem->highRAM[TAC - 0xFF00];
+	byte tac = gb->mem.highRAM[TAC - 0xFF00];
 	byte frequency = tac & 3;
 	constexpr int threshold[4] = {1024, 16, 64, 256};
 
@@ -66,15 +64,15 @@ void Cpu::UpdateTimer(int clock) {
 	if (clockCounter > threshold[frequency])
 	{
 		clockCounter -= threshold[frequency];
-		byte tima = mem->highRAM[TIMA - 0xFF00];
+		byte tima = gb->mem.highRAM[TIMA - 0xFF00];
 		if (tima == 0xFF)
 		{
-			mem->highRAM[TIMA - 0xFF00] = mem->highRAM[TMA-0xFF00];
-			RaiseInterupt(2);
+			gb->mem.highRAM[TIMA - 0xFF00] = gb->mem.highRAM[TMA-0xFF00];
+			gb->RaiseInterupt(2);
 		}
 		else
 		{
-			mem->highRAM[TIMA - 0xFF00]++;
+			gb->mem.highRAM[TIMA - 0xFF00]++;
 		}
 	}
 }
@@ -191,53 +189,47 @@ void Cpu::Dec16(Register16& reg) {
 }
 
 // Saves the current execution address on the stack before moving PC the requested address
-void Cpu::Call(uint16 addr) {
-	PushStack(PC);
+void Cpu::Call(uint16 addr,  Gameboy * gb) {
+	PushStack(PC, gb);
 	PC = addr;
 }
 
 // Returns by setting PC value to the value on the stack
-void Cpu::Ret() {
-	PC = PopStack();
+void Cpu::Ret( Gameboy * gb) {
+	PC = PopStack(gb);
 }
 
-byte Cpu::PopPC() {
-	byte opcode = mem->Read(PC);
+byte Cpu::PopPC( Gameboy * gb) {
+	byte opcode = gb->Read(PC);
 	PC++;
 	return opcode;
 }
 
-uint16 Cpu::PopPC16() {
-	byte val1 = mem->Read(PC);
+uint16 Cpu::PopPC16( Gameboy * gb) {
+	byte val1 = gb->Read(PC);
 	PC++;
-	byte val2 = mem->Read(PC);
+	byte val2 = gb->Read(PC);
 	PC++;
 	return ((uint16)val2 << 8) | val1;
 }
 
 // Pushes a 16 bit value on the stack, and decrement the stack pointer
-void Cpu::PushStack(uint16 val) {
-	mem->Write(SP.Get() - 1, BIT_HIGH_8(val));
-	mem->Write(SP.Get() - 2, BIT_LOW_8(val));
+void Cpu::PushStack(uint16 val,  Gameboy * gb) {
+	gb->Write(SP.Get() - 1, BIT_HIGH_8(val));
+	gb->Write(SP.Get() - 2, BIT_LOW_8(val));
 	SP.Set(SP.Get() - 2);
 }
 
 // Read the 16 bits on the stack, and increment the stack pointer
-uint16 Cpu::PopStack() {
-	byte b1 = mem->Read(SP.Get());
-	byte b2 = mem->Read(SP.Get() + 1);
+uint16 Cpu::PopStack( Gameboy * gb) {
+	byte b1 = gb->Read(SP.Get());
+	byte b2 = gb->Read(SP.Get() + 1);
 	SP.Set(SP.Get() + 2);
 	return ((uint16)b2 << 8) | b1;
 }
 
 void Cpu::Halt() {
 	isOnHalt = true;
-}
-
-void Cpu::RaiseInterupt(byte code) {
-	byte mask = mem->Read(0xff0f);
-	mask = BIT_SET(mask, code);
-	mem->Write(0xff0f, mask);
 }
 
 static uint16 interruptAddresses[] = {
@@ -248,7 +240,7 @@ static uint16 interruptAddresses[] = {
 	0x60, // Hi-Lo P10-P13
 };
 
-int Cpu::ProcessInterupts() {
+int Cpu::ProcessInterupts( Gameboy * gb) {
 	if (interuptsEnabled) {
 		interuptsOn = true;
 		interuptsEnabled = false;
@@ -258,8 +250,8 @@ int Cpu::ProcessInterupts() {
 		return 0;
 	}
 
-	byte mask = mem->Read(0xff0f);
-	byte enabledMask = mem->Read(0xffff);
+	byte mask = gb->Read(0xff0f);
+	byte enabledMask = gb->Read(0xffff);
 
 	for (byte i = 0; i < 5; i++) {
 		if (BIT_IS_SET(mask, i) && BIT_IS_SET(enabledMask, i)) {
@@ -269,9 +261,9 @@ int Cpu::ProcessInterupts() {
 				interuptsOn = false;
 				isOnHalt = false;
 				mask = BIT_UNSET(mask, i);
-				mem->Write(0xff0f, mask);
+				gb->Write(0xff0f, mask);
 
-				PushStack(PC);
+				PushStack(PC, gb);
 				PC = interruptAddresses[i];
 			}
 			return 20;

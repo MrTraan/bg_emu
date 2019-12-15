@@ -3,8 +3,7 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include "../gb_emu.h"
-#include "../memory.h"
-#include "../cpu.h"
+#include "../gameboy.h"
 
 struct Window;
 
@@ -53,8 +52,7 @@ class Keyboard {
 	static bool IsKeyDown(eKey key);
 	static bool IsKeyPressed(eKey key);
 	
-	static Memory * s_mem;
-	static Cpu * s_cpu;
+	static Gameboy * s_gb;
 
    private:
 	static int keyDowns[MAX_CONCURRENT_KEY_DOWN];

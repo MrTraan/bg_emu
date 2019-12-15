@@ -2,7 +2,7 @@
 
 #include "gb_emu.h"
 
-struct Memory;
+struct Gameboy;
 
 struct Register8 {
 	byte mask = 0xFF;
@@ -45,8 +45,6 @@ struct Cpu {
 	uint16	   PC;
 	Register16 SP;
 
-	Memory* mem;
-
 	int additionnalTicks;
 	int divider;
 	int speed; // Will be useful later for GBC
@@ -56,11 +54,10 @@ struct Cpu {
 	bool interuptsEnabled = true;
 	bool interuptsOn = false;
 	bool isOnHalt = false;
-	static bool skipBios;
 
 	bool IsCGB() { return false; }
 
-	void Reset() {
+	void Reset(bool skipBios) {
 		if (skipBios) {
 			PC = 0x100;
 		} else {
@@ -84,11 +81,11 @@ struct Cpu {
 		cpuTime = 0;
 	}
 
-	int	   ExecuteNextOPCode();
-	byte   PopPC();
-	uint16 PopPC16();
-	void   PushStack(uint16 val);
-	uint16 PopStack();
+	int	   ExecuteNextOPCode( Gameboy * gb);
+	byte   PopPC( Gameboy * gb);
+	uint16 PopPC16( Gameboy * gb);
+	void   PushStack(uint16 val,  Gameboy * gb);
+	uint16 PopStack( Gameboy * gb);
 
 	void Add(Register8& reg, byte val, bool useCarry);
 	void Sub(Register8& reg, byte val, bool useCarry);
@@ -98,12 +95,11 @@ struct Cpu {
 	void Cp(Register8& reg, byte val);
 	void Inc(Register8& reg);
 	void Dec(Register8& reg);
-	void Call(uint16 addr);
-	void Ret();
-	void RaiseInterupt(byte code);
-	int ProcessInterupts();
+	void Call(uint16 addr,  Gameboy * gb);
+	void Ret( Gameboy * gb);
+	int ProcessInterupts( Gameboy * gb);
 	void Halt();
-	void UpdateTimer(int cycles);
+	void UpdateTimer(int cycles,  Gameboy * gb);
 
 	void Add16(Register16& reg, uint16 val);
 	void Add16Signed(Register16& reg, int8 val);
@@ -129,7 +125,7 @@ struct Cpu {
 	bool GetH() { return BIT_IS_SET(F.Get(), 5); }
 	bool GetC() { return BIT_IS_SET(F.Get(), 4); }
 
-	void ExecuteInstruction(byte opcode);
+	void ExecuteInstruction(byte opcode, Gameboy * gb);
 };
 
-int ExecuteCBOPCode(Cpu * cpu, uint16 opcode);
+int ExecuteCBOPCode(Cpu * cpu, uint16 opcode, Gameboy * gb);
