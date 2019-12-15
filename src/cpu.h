@@ -34,7 +34,7 @@ struct Register16 {
 struct Cpu {
 	static const char *   s_instructionsNames[ 0x100 ];
 	static byte			  s_instructionsSize[ 0x100 ];
-	const char *		  lastInstructionName = nullptr;
+	byte lastInstructionOpCode = 0;
 
 	Register8	A;
 	Register8	F;
@@ -42,14 +42,14 @@ struct Cpu {
 	Register16  DE;
 	Register16  HL;
 
-	uint16	   PC;
 	Register16 SP;
+	uint16	   PC;
 
 	int additionnalTicks;
+	int cpuTime;
 	int divider;
 	int speed; // Will be useful later for GBC
 	int clockCounter;
-	int cpuTime;
 
 	bool interuptsEnabled = true;
 	bool interuptsOn = false;

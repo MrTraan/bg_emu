@@ -17,8 +17,6 @@ struct Ppu {
 	static bool debugDrawSprites;
 
 	int scanlineCounter = 456;
-	int lastDrawnScanLine = 0;
-
 	int selectedPalette = 0;
 	byte tileScanLine[GB_SCREEN_WIDTH];
 
@@ -37,7 +35,6 @@ struct Ppu {
 		backgroundTexture.Clear();
 		tilesetTexture.Clear();
 		scanlineCounter = 456;
-		lastDrawnScanLine = 0;
 	}
 
 	void SwapBuffers();

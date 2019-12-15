@@ -13,18 +13,17 @@
 struct Memory {
 	byte highRAM[0x100];
 	byte VRAM[0x4000];
-	byte VRAMBankIndex;
+	byte workRAM[0x9000];
+	byte OAM[0x100];
 
 	// Work Ram bank 0-7
-	byte workRAM[0x9000];
 	byte workRAMBankIndex;
-
-	byte OAM[0x100];
+	byte VRAMBankIndex;
 
 	byte inputMask;
 
-	bool hdmaActive = false;
 	byte hdmaLength = 0;
+	bool hdmaActive = false;
 };
 
 struct Gameboy {
@@ -44,6 +43,9 @@ struct Gameboy {
 
 	void Reset();
 	void LoadCart(const char * path);
+
+	void SerializeSaveState(const char * path);
+	void LoadSaveState(const char * path);
 
 	void DebugDraw();
 

@@ -22,7 +22,6 @@
 #include "sound/Sound_Queue.h"
 
 void DrawUI();
-void DrawDebugWindow();
 
 static Window window;
 static Gameboy gb;
@@ -31,8 +30,6 @@ Sound_Queue sound;
 
 static void reset( const char * cartridgePath ) {
 	gb.LoadCart(cartridgePath);
-
-	Keyboard::s_gb = &gb;
 
 	soundBuffer.clear();
 	sound.stop();
@@ -102,6 +99,7 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
+
 	parseRomPath( FS_BASE_PATH "/roms" );
 
 	window.Allocate( GB_SCREEN_WIDTH * 8, GB_SCREEN_HEIGHT * 8, "bg_emu" );
@@ -113,6 +111,7 @@ int main(int argc, char **argv)
 	ImGui_ImplOpenGL3_Init("#version 150");
 	io.Fonts->AddFontFromFileTTF( FS_BASE_PATH "/fonts/consolas.ttf", 13 );
 
+	Keyboard::s_gb = &gb;
 	Keyboard::Init(window);
 
 	int major, minor, version;
@@ -213,6 +212,21 @@ void DrawUI() {
 			}
             ImGui::EndMenu();
         }
+		if (gb.cart != nullptr) {
+			if (ImGui::BeginMenu("Save state"))
+			{
+				char fileName[200];
+				strncpy(fileName, gb.cart->romName, 200);
+				strncat(fileName, ".save_state", 200);
+				if (ImGui::MenuItem("Save")) {
+					gb.SerializeSaveState(fileName);
+				}
+				if (ImGui::MenuItem("Load")) {
+					gb.LoadSaveState(fileName);
+				}
+				ImGui::EndMenu();
+			}
+		}
 		if (ImGui::MenuItem(gb.shouldRun ? "Pause" : "Run")) {
 			gb.shouldRun = !gb.shouldRun;
 		}

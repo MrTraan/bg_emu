@@ -29,7 +29,7 @@ int Cpu::ExecuteNextOPCode( Gameboy * gb) {
 	byte opcode = PopPC(gb);
 	int  ticksUsed = opcodeCyclesCost[opcode] * 4;
 	additionnalTicks = 0;
-	lastInstructionName = s_instructionsNames[opcode];
+	lastInstructionOpCode = opcode;
 	//printf("%s\n", s_instructionsNames[opcode]);
 	//static bool startLogging = false;
 	//if ( PC - 1 == 0x100 ) {

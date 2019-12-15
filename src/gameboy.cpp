@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <stdio.h>
 #include "gameboy.h"
 #include <imgui/imgui.h>
 #include <imgui/imgui_memory_editor.h>
@@ -40,6 +41,35 @@ void Gameboy::LoadCart(const char * path) {
 	}
 	cart = Cartridge::LoadFromFile(path);
 	Reset();
+}
+
+void Gameboy::SerializeSaveState(const char * path) {
+	FILE * fh = fopen(path, "wb");
+	if (fh == nullptr) {
+		printf("Could not find save state file %s\n", path);
+		DEBUG_BREAK;
+		return;
+	}
+	fwrite(&cpu, sizeof(Cpu), 1, fh);
+	fwrite(&mem, sizeof(Memory), 1, fh);
+	fwrite(&ppu.scanlineCounter, sizeof(int), 1, fh);
+
+	fclose(fh);
+}
+
+void Gameboy::LoadSaveState(const char * path) {
+	FILE * fh = fopen(path, "rb");
+	if (fh == nullptr) {
+		printf("Could not find save state file %s\n", path);
+		DEBUG_BREAK;
+		return;
+	}
+
+	fread(&cpu, sizeof(Cpu), 1, fh);
+	fread(&mem, sizeof(Memory), 1, fh);
+	fread(&ppu.scanlineCounter, sizeof(int), 1, fh);
+
+	fclose(fh);
 }
 
 void Gameboy::DebugDraw() {
@@ -101,7 +131,7 @@ void Gameboy::DebugDraw() {
 
 	ImGui::Columns(1);
 	ImGui::Separator();
-	ImGui::Text("Last instruction: %s", cpu.lastInstructionName);
+	ImGui::Text("Last instruction: %s", Cpu::s_instructionsNames[cpu.lastInstructionOpCode]);
 	ImGui::Text("Next instruction: %s", Cpu::s_instructionsNames[Read(cpu.PC)]);
 	ImGui::Checkbox( "Skip bios", &skipBios );
 
@@ -118,11 +148,20 @@ void Gameboy::DebugDraw() {
 	if (ImGui::Button(showRomCode ? "Hide ROM Code" : "Show ROM Code")) {
 		showRomCode = !showRomCode;
 	}
-	ImGui::SameLine();
+
 	static int showMemoryInspector = false;
-	if (ImGui::Button(showMemoryInspector ? "Hide Memory" : "Show Memory")) {
-		showMemoryInspector = !showMemoryInspector;
+	if (ImGui::TreeNode("Memory")) {
+		ImGui::TreePop();
+		ImGui::Text("workRAM bank: %d", mem.workRAMBankIndex);
+		ImGui::Text("VRAM bank: %d", mem.VRAMBankIndex);
+		ImGui::Text("Input mask: %d", mem.inputMask);
+		ImGui::Text("hdma length: %d", mem.hdmaLength);
+		ImGui::Text("hdma active: %d", mem.hdmaActive);
+		if (ImGui::Button(showMemoryInspector ? "Hide Memory" : "Show Memory")) {
+			showMemoryInspector = !showMemoryInspector;
+		}	
 	}
+
 
 	if (ImGui::TreeNode("Pixel Processing Unit")) {
 		ppu.DebugDraw( this );
