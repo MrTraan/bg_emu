@@ -4,32 +4,32 @@
 #define INVALID_OP DEBUG_BREAK
 
 const char * Cpu::s_instructionsNames[ 0x100 ] = {
-	"NOP",		   "LD BC, d16", "LD (BC), A",  "INC BC",	  "INC B",		 "DEC B",	   "LD B, d8",	  "RLCA",		"LD (a16), SP", "ADD HL, BC",
-	"LD A, (BC)",  "DEC BC",	 "INC C",		"DEC C",	  "LD C, d8",	 "RRCA",	   "STOP 0",	  "LD DE, d16", "LD (DE), A",   "INC DE",
+	"NOP",		   "LD BC, d16", "LD (BC), A",	"INC BC",	  "INC B",		 "DEC B",	   "LD B, d8",	  "RLCA",		"LD (a16), SP", "ADD HL, BC",
+	"LD A, (BC)",  "DEC BC",	 "INC C",		"DEC C",	  "LD C, d8",	 "RRCA",	   "STOP 0",	  "LD DE, d16", "LD (DE), A",	"INC DE",
 	"INC D",	   "DEC D",		 "LD D, d8",	"RLA",		  "JR r8",		 "ADD HL, DE", "LD A, (DE)",  "DEC DE",		"INC E",		"DEC E",
-	"LD E, d8",	   "RRA",		 "JR NZ, r8",   "LD HL, d16", "LD (HL+), A", "INC HL",	   "INC H",		  "DEC H",		"LD H, d8",		"DAA",
+	"LD E, d8",	   "RRA",		 "JR NZ, r8",	"LD HL, d16", "LD (HL+), A", "INC HL",	   "INC H",		  "DEC H",		"LD H, d8",		"DAA",
 	"JR Z, r8",	   "ADD HL, HL", "LD A, (HL+)", "DEC HL",	  "INC L",		 "DEC L",	   "LD L, d8",	  "CPL",		"JR NC, r8",	"LD SP, d16",
-	"LD (HL-), A", "INC SP",	 "INC (HL)",	"DEC (HL)",   "LD (HL), d8", "SCF",		   "JR C, r8",	  "ADD HL, SP", "LD A, (HL-)",  "DEC SP",
+	"LD (HL-), A", "INC SP",	 "INC (HL)",	"DEC (HL)",	  "LD (HL), d8", "SCF",		   "JR C, r8",	  "ADD HL, SP", "LD A, (HL-)",	"DEC SP",
 	"INC A",	   "DEC A",		 "LD A, d8",	"CCF",		  "LD B, B",	 "LD B, C",	   "LD B, D",	  "LD B, E",	"LD B, H",		"LD B, L",
-	"LD B, (HL)",  "LD B, A",	 "LD C, B",		"LD C, C",	  "LD C, D",	 "LD C, E",	   "LD C, H",	  "LD C, L",	"LD C, (HL)",   "LD C, A",
+	"LD B, (HL)",  "LD B, A",	 "LD C, B",		"LD C, C",	  "LD C, D",	 "LD C, E",	   "LD C, H",	  "LD C, L",	"LD C, (HL)",	"LD C, A",
 	"LD D, B",	   "LD D, C",	 "LD D, D",		"LD D, E",	  "LD D, H",	 "LD D, L",	   "LD D, (HL)",  "LD D, A",	"LD E, B",		"LD E, C",
-	"LD E, D",	   "LD E, E",	 "LD E, H",		"LD E, L",	  "LD E, (HL)",  "LD E, A",	   "LD H, B",	  "LD H, C",	"LD H, D",		"LD H, E",
-	"LD H, H",	   "LD H, L",	 "LD H, (HL)",  "LD H, A",	  "LD L, B",	 "LD L, C",	   "LD L, D",	  "LD L, E",	"LD L, H",		"LD L, L",
-	"LD L, (HL)",  "LD L, A",	 "LD (HL), B",  "LD (HL), C", "LD (HL), D",  "LD (HL), E", "LD (HL), H",  "LD (HL), L", "HALT",			"LD (HL), A",
+	"LD E, D",	   "LD E, E",	 "LD E, H",		"LD E, L",	  "LD E, (HL)",	 "LD E, A",	   "LD H, B",	  "LD H, C",	"LD H, D",		"LD H, E",
+	"LD H, H",	   "LD H, L",	 "LD H, (HL)",	"LD H, A",	  "LD L, B",	 "LD L, C",	   "LD L, D",	  "LD L, E",	"LD L, H",		"LD L, L",
+	"LD L, (HL)",  "LD L, A",	 "LD (HL), B",	"LD (HL), C", "LD (HL), D",	 "LD (HL), E", "LD (HL), H",  "LD (HL), L", "HALT",			"LD (HL), A",
 	"LD A, B",	   "LD A, C",	 "LD A, D",		"LD A, E",	  "LD A, H",	 "LD A, L",	   "LD A, (HL)",  "LD A, A",	"ADD A,B",		"ADD A,C",
-	"ADD A,D",	   "ADD A,E",	 "ADD A,H",		"ADD A,L",	  "ADD A,(HL)",  "ADD A,A",	   "ADC A,B",	  "ADC A,C",	"ADC A,D",		"ADC A,E",
-	"ADC A,H",	   "ADC A,L",	 "ADC A,(HL)",  "ADC A,A",	  "SUB A, B",	 "SUB A, C",   "SUB A, D",	  "SUB A, E",   "SUB A, H",		"SUB A, L",
-	"SUB A, (HL)", "SUB A, A",   "SBC A,B",		"SBC A,C",	  "SBC A,D",	 "SBC A,E",	   "SBC A,H",	  "SBC A,L",	"SBC A,(HL)",   "SBC A,A",
-	"AND A, B",	   "AND A, C",   "AND A, D",	"AND A, E",   "AND A, H",	 "AND A, L",   "AND A, (HL)", "AND A, A",   "XOR A, B",		"XOR A, C",
-	"XOR A, D",	   "XOR A, E",   "XOR A, H",	"XOR A, L",   "XOR A, (HL)", "XOR A, A",   "OR B",		  "OR C",		"OR D",			"OR E",
+	"ADD A,D",	   "ADD A,E",	 "ADD A,H",		"ADD A,L",	  "ADD A,(HL)",	 "ADD A,A",	   "ADC A,B",	  "ADC A,C",	"ADC A,D",		"ADC A,E",
+	"ADC A,H",	   "ADC A,L",	 "ADC A,(HL)",	"ADC A,A",	  "SUB A, B",	 "SUB A, C",   "SUB A, D",	  "SUB A, E",	"SUB A, H",		"SUB A, L",
+	"SUB A, (HL)", "SUB A, A",	 "SBC A,B",		"SBC A,C",	  "SBC A,D",	 "SBC A,E",	   "SBC A,H",	  "SBC A,L",	"SBC A,(HL)",	"SBC A,A",
+	"AND A, B",	   "AND A, C",	 "AND A, D",	"AND A, E",	  "AND A, H",	 "AND A, L",   "AND A, (HL)", "AND A, A",	"XOR A, B",		"XOR A, C",
+	"XOR A, D",	   "XOR A, E",	 "XOR A, H",	"XOR A, L",	  "XOR A, (HL)", "XOR A, A",   "OR B",		  "OR C",		"OR D",			"OR E",
 	"OR H",		   "OR L",		 "OR (HL)",		"OR A",		  "CP B",		 "CP C",	   "CP D",		  "CP E",		"CP H",			"CP L",
-	"CP (HL)",	   "CP A",		 "RET NZ",		"POP BC",	  "JP NZ, a16",  "JP a16",	   "CALL NZ",	  "PUSH BC",	"ADD A, d8",	"RST 0x00",
-	"RET Z",	   "RET",		 "JP Z, a16",   "PREFIX CB",  "CALL Z",		 "CALL a16",   "ADC A, d8",   "RST 0x08",   "RET NC",		"POP DE",
-	"JP NC, a16",  "INVALID_OP", "CALL NC",		"PUSH DE",	  "SUB A, d8",   "RST 0x10",   "RET C",		  "RETI",		"JP C, a16",	"INVALID_OP",
-	"CALL C",	   "INVALID_OP", "SBC A, d8",   "RST 0x18",   "LDH (a8), A", "POP HL",	   "LD (C), A",   "INVALID_OP", "INVALID_OP",   "PUSH HL",
-	"AND A, d8",   "RST 0x20",   "ADD SP, r8",  "JP HL",	  "LD (a16), A", "INVALID_OP", "INVALID_OP",  "INVALID_OP", "XOR A, d8",	"RST 0x28",
-	"LDH A, (a8)", "POP AF",	 "LD A, (C)",   "DI",		  "INVALID_OP",  "PUSH AF",	   "OR A, d8",	  "RST 0x30",   "LD HL, SP+r8", "LD SP, HL",
-	"LD A, (a16)", "EI",		 "INVALID_OP",  "INVALID_OP", "CP A, d8",	 "RST 0x38",
+	"CP (HL)",	   "CP A",		 "RET NZ",		"POP BC",	  "JP NZ, a16",	 "JP a16",	   "CALL NZ",	  "PUSH BC",	"ADD A, d8",	"RST 0x00",
+	"RET Z",	   "RET",		 "JP Z, a16",	"PREFIX CB",  "CALL Z",		 "CALL a16",   "ADC A, d8",	  "RST 0x08",	"RET NC",		"POP DE",
+	"JP NC, a16",  "INVALID_OP", "CALL NC",		"PUSH DE",	  "SUB A, d8",	 "RST 0x10",   "RET C",		  "RETI",		"JP C, a16",	"INVALID_OP",
+	"CALL C",	   "INVALID_OP", "SBC A, d8",	"RST 0x18",	  "LDH (a8), A", "POP HL",	   "LD (C), A",	  "INVALID_OP", "INVALID_OP",	"PUSH HL",
+	"AND A, d8",   "RST 0x20",	 "ADD SP, r8",	"JP HL",	  "LD (a16), A", "INVALID_OP", "INVALID_OP",  "INVALID_OP", "XOR A, d8",	"RST 0x28",
+	"LDH A, (a8)", "POP AF",	 "LD A, (C)",	"DI",		  "INVALID_OP",	 "PUSH AF",	   "OR A, d8",	  "RST 0x30",	"LD HL, SP+r8", "LD SP, HL",
+	"LD A, (a16)", "EI",		 "INVALID_OP",	"INVALID_OP", "CP A, d8",	 "RST 0x38",
 };
 
 byte Cpu::s_instructionsSize[ 0x100 ] = { 1, 3, 1, 1, 1, 1, 2, 1, 3, 1, 1, 1, 1, 1, 2, 1, 2, 3, 1, 1, 1, 1, 2, 1, 2, 1, 1, 1, 1, 1, 2, 1, 2, 3, 1, 1, 1,
@@ -49,7 +49,7 @@ void Cpu::ExecuteInstruction( byte opcode, Gameboy * gb ) {
 		}
 		case 0x01: {
 			// LD BC, d16
-			uint16 val = PopPC16(gb);
+			uint16 val = PopPC16( gb );
 			BC.Set( val );
 			break;
 		}
@@ -77,7 +77,7 @@ void Cpu::ExecuteInstruction( byte opcode, Gameboy * gb ) {
 		}
 		case 0x06: {
 			// LD B, d8
-			byte val = PopPC(gb);
+			byte val = PopPC( gb );
 			BC.high.Set( val );
 			break;
 		}
@@ -94,7 +94,7 @@ void Cpu::ExecuteInstruction( byte opcode, Gameboy * gb ) {
 		}
 		case 0x08: {
 			// LD (a16), SP
-			uint16 addr = PopPC16(gb);
+			uint16 addr = PopPC16( gb );
 			gb->Write( addr, SP.low.Get() );
 			gb->Write( addr + 1, SP.high.Get() );
 			break;
@@ -127,7 +127,7 @@ void Cpu::ExecuteInstruction( byte opcode, Gameboy * gb ) {
 		}
 		case 0x0e: {
 			// LD C, d8
-			byte val = PopPC(gb);
+			byte val = PopPC( gb );
 			BC.low.Set( val );
 			break;
 		}
@@ -145,13 +145,13 @@ void Cpu::ExecuteInstruction( byte opcode, Gameboy * gb ) {
 		case 0x10: {
 			// STOP 0
 			// Halt();
-			PopPC(gb); // Read next byte, because this instruction is actualy 2 bytes : 0x10 0x00, no idea why
-					 // TODO: Game boy color change speed
+			PopPC( gb ); // Read next byte, because this instruction is actualy 2 bytes : 0x10 0x00, no idea why
+						 // TODO: Game boy color change speed
 			break;
 		}
 		case 0x11: {
 			// LD DE, d16
-			DE.Set( PopPC16(gb) );
+			DE.Set( PopPC16( gb ) );
 			break;
 		}
 		case 0x12: {
@@ -176,7 +176,7 @@ void Cpu::ExecuteInstruction( byte opcode, Gameboy * gb ) {
 		}
 		case 0x16: {
 			// LD D, d8
-			DE.high.Set( PopPC(gb) );
+			DE.high.Set( PopPC( gb ) );
 			break;
 		}
 		case 0x17: {
@@ -193,7 +193,7 @@ void Cpu::ExecuteInstruction( byte opcode, Gameboy * gb ) {
 		}
 		case 0x18: {
 			// JR r8
-			int addr = (int8)PopPC(gb) + (int)PC;
+			int addr = (int8)PopPC( gb ) + (int)PC;
 			PC = (uint16)addr;
 			break;
 		}
@@ -224,7 +224,7 @@ void Cpu::ExecuteInstruction( byte opcode, Gameboy * gb ) {
 		}
 		case 0x1e: {
 			// LD E, d8
-			DE.low.Set( PopPC(gb) );
+			DE.low.Set( PopPC( gb ) );
 			break;
 		}
 		case 0x1f: {
@@ -241,7 +241,7 @@ void Cpu::ExecuteInstruction( byte opcode, Gameboy * gb ) {
 		}
 		case 0x20: {
 			// JR NZ, r8
-			int8 jump = (int8)PopPC(gb);
+			int8 jump = (int8)PopPC( gb );
 			if ( !GetZ() ) {
 				uint16 addr = PC + jump;
 				PC = addr;
@@ -251,7 +251,7 @@ void Cpu::ExecuteInstruction( byte opcode, Gameboy * gb ) {
 		}
 		case 0x21: {
 			// LD HL, d16
-			HL.Set( PopPC16(gb) );
+			HL.Set( PopPC16( gb ) );
 			break;
 		}
 		case 0x22: {
@@ -277,7 +277,7 @@ void Cpu::ExecuteInstruction( byte opcode, Gameboy * gb ) {
 		}
 		case 0x26: {
 			// LD H, d8
-			HL.high.Set( PopPC(gb) );
+			HL.high.Set( PopPC( gb ) );
 			break;
 		}
 		case 0x27: {
@@ -313,7 +313,7 @@ void Cpu::ExecuteInstruction( byte opcode, Gameboy * gb ) {
 		}
 		case 0x28: {
 			// JR Z, r8
-			int8 jump = (int8)PopPC(gb);
+			int8 jump = (int8)PopPC( gb );
 			if ( GetZ() ) {
 				uint16 addr = PC + jump;
 				PC = addr;
@@ -349,7 +349,7 @@ void Cpu::ExecuteInstruction( byte opcode, Gameboy * gb ) {
 		}
 		case 0x2e: {
 			// LD L, d8
-			HL.low.Set( PopPC(gb) );
+			HL.low.Set( PopPC( gb ) );
 			break;
 		}
 		case 0x2f: {
@@ -361,7 +361,7 @@ void Cpu::ExecuteInstruction( byte opcode, Gameboy * gb ) {
 		}
 		case 0x30: {
 			// JR NC, r8
-			int8 jump = (int8)PopPC(gb);
+			int8 jump = (int8)PopPC( gb );
 			if ( !GetC() ) {
 				uint16 addr = PC + jump;
 				PC = addr;
@@ -371,7 +371,7 @@ void Cpu::ExecuteInstruction( byte opcode, Gameboy * gb ) {
 		}
 		case 0x31: {
 			// LD SP, d16
-			SP.Set( PopPC16(gb) );
+			SP.Set( PopPC16( gb ) );
 			break;
 		}
 		case 0x32: {
@@ -407,7 +407,7 @@ void Cpu::ExecuteInstruction( byte opcode, Gameboy * gb ) {
 		}
 		case 0x36: {
 			// LD (HL), d8
-			gb->Write( HL.Get(), PopPC(gb) );
+			gb->Write( HL.Get(), PopPC( gb ) );
 			break;
 		}
 		case 0x37: {
@@ -419,7 +419,7 @@ void Cpu::ExecuteInstruction( byte opcode, Gameboy * gb ) {
 		}
 		case 0x38: {
 			// JR C, r8
-			int8 jump = (int8)PopPC(gb);
+			int8 jump = (int8)PopPC( gb );
 			if ( GetC() ) {
 				uint16 addr = PC + jump;
 				PC = addr;
@@ -455,7 +455,7 @@ void Cpu::ExecuteInstruction( byte opcode, Gameboy * gb ) {
 		}
 		case 0x3e: {
 			// LD A, d8
-			A.Set( PopPC(gb) );
+			A.Set( PopPC( gb ) );
 			break;
 		}
 		case 0x3f: {
@@ -1108,19 +1108,19 @@ void Cpu::ExecuteInstruction( byte opcode, Gameboy * gb ) {
 		case 0xc0: {
 			// RET NZ
 			if ( !GetZ() ) {
-				Ret(gb);
+				Ret( gb );
 				additionnalTicks += 12;
 			}
 			break;
 		}
 		case 0xc1: {
 			// POP BC
-			BC.Set( PopStack(gb) );
+			BC.Set( PopStack( gb ) );
 			break;
 		}
 		case 0xc2: {
 			// JP NZ, a16
-			uint16 jump = PopPC16(gb);
+			uint16 jump = PopPC16( gb );
 			if ( !GetZ() ) {
 				PC = jump;
 				additionnalTicks += 4;
@@ -1129,12 +1129,12 @@ void Cpu::ExecuteInstruction( byte opcode, Gameboy * gb ) {
 		}
 		case 0xc3: {
 			// JP a16
-			PC = PopPC16(gb);
+			PC = PopPC16( gb );
 			break;
 		}
 		case 0xc4: {
 			// CALL NZ
-			uint16 jump = PopPC16(gb);
+			uint16 jump = PopPC16( gb );
 			if ( !GetZ() ) {
 				Call( jump, gb );
 				additionnalTicks += 12;
@@ -1148,7 +1148,7 @@ void Cpu::ExecuteInstruction( byte opcode, Gameboy * gb ) {
 		}
 		case 0xc6: {
 			// ADD A, d8
-			Add( A, PopPC(gb), false );
+			Add( A, PopPC( gb ), false );
 			break;
 		}
 		case 0xc7: {
@@ -1159,19 +1159,19 @@ void Cpu::ExecuteInstruction( byte opcode, Gameboy * gb ) {
 		case 0xc8: {
 			// RET Z
 			if ( GetZ() ) {
-				Ret(gb);
+				Ret( gb );
 				additionnalTicks += 12;
 			}
 			break;
 		}
 		case 0xc9: {
 			// RET
-			Ret(gb);
+			Ret( gb );
 			break;
 		}
 		case 0xca: {
 			// JP Z, a16
-			uint16 jump = PopPC16(gb);
+			uint16 jump = PopPC16( gb );
 			if ( GetZ() ) {
 				PC = jump;
 				additionnalTicks += 4;
@@ -1180,12 +1180,12 @@ void Cpu::ExecuteInstruction( byte opcode, Gameboy * gb ) {
 		}
 		case 0xcb: {
 			// PREFIX CB
-			additionnalTicks += ExecuteCBOPCode( this, PopPC(gb), gb );
+			additionnalTicks += ExecuteCBOPCode( this, PopPC( gb ), gb );
 			break;
 		}
 		case 0xcc: {
 			// CALL Z
-			uint16 jump = PopPC16(gb);
+			uint16 jump = PopPC16( gb );
 			if ( GetZ() ) {
 				Call( jump, gb );
 				additionnalTicks += 12;
@@ -1194,12 +1194,12 @@ void Cpu::ExecuteInstruction( byte opcode, Gameboy * gb ) {
 		}
 		case 0xcd: {
 			// CALL a16
-			Call( PopPC16(gb), gb );
+			Call( PopPC16( gb ), gb );
 			break;
 		}
 		case 0xce: {
 			// ADC A, d8
-			Add( A, PopPC(gb), true );
+			Add( A, PopPC( gb ), true );
 			break;
 		}
 		case 0xcf: {
@@ -1210,19 +1210,19 @@ void Cpu::ExecuteInstruction( byte opcode, Gameboy * gb ) {
 		case 0xd0: {
 			// RET NC
 			if ( !GetC() ) {
-				Ret(gb);
+				Ret( gb );
 				additionnalTicks += 12;
 			}
 			break;
 		}
 		case 0xd1: {
 			// POP DE
-			DE.Set( PopStack(gb) );
+			DE.Set( PopStack( gb ) );
 			break;
 		}
 		case 0xd2: {
 			// JP NC, a16
-			uint16 jump = PopPC16(gb);
+			uint16 jump = PopPC16( gb );
 			if ( !GetC() ) {
 				PC = jump;
 				additionnalTicks += 4;
@@ -1235,7 +1235,7 @@ void Cpu::ExecuteInstruction( byte opcode, Gameboy * gb ) {
 		}
 		case 0xd4: {
 			// CALL NC
-			uint16 jump = PopPC16(gb);
+			uint16 jump = PopPC16( gb );
 			if ( !GetC() ) {
 				Call( jump, gb );
 				additionnalTicks += 12;
@@ -1249,7 +1249,7 @@ void Cpu::ExecuteInstruction( byte opcode, Gameboy * gb ) {
 		}
 		case 0xd6: {
 			// SUB A, d8
-			Sub( A, PopPC(gb), false );
+			Sub( A, PopPC( gb ), false );
 			break;
 		}
 		case 0xd7: {
@@ -1260,20 +1260,20 @@ void Cpu::ExecuteInstruction( byte opcode, Gameboy * gb ) {
 		case 0xd8: {
 			// RET C
 			if ( GetC() ) {
-				Ret(gb);
+				Ret( gb );
 				additionnalTicks += 12;
 			}
 			break;
 		}
 		case 0xd9: {
 			// RETI
-			Ret(gb);
+			Ret( gb );
 			interuptsEnabled = true;
 			break;
 		}
 		case 0xda: {
 			// JP C, a16
-			uint16 jump = PopPC16(gb);
+			uint16 jump = PopPC16( gb );
 			if ( GetC() ) {
 				PC = jump;
 				additionnalTicks += 4;
@@ -1286,7 +1286,7 @@ void Cpu::ExecuteInstruction( byte opcode, Gameboy * gb ) {
 		}
 		case 0xdc: {
 			// CALL C
-			uint16 jump = PopPC16(gb);
+			uint16 jump = PopPC16( gb );
 			if ( GetC() ) {
 				Call( jump, gb );
 				additionnalTicks += 12;
@@ -1299,7 +1299,7 @@ void Cpu::ExecuteInstruction( byte opcode, Gameboy * gb ) {
 		}
 		case 0xde: {
 			// SBC A, d8
-			Sub( A, PopPC(gb), true );
+			Sub( A, PopPC( gb ), true );
 			break;
 		}
 		case 0xdf: {
@@ -1309,12 +1309,12 @@ void Cpu::ExecuteInstruction( byte opcode, Gameboy * gb ) {
 		}
 		case 0xe0: {
 			// LDH (a8), A
-			gb->Write( 0xFF00 + PopPC(gb), A.Get() );
+			gb->Write( 0xFF00 + PopPC( gb ), A.Get() );
 			break;
 		}
 		case 0xe1: {
 			// POP HL
-			HL.Set( PopStack(gb) );
+			HL.Set( PopStack( gb ) );
 			break;
 		}
 		case 0xe2: {
@@ -1337,7 +1337,7 @@ void Cpu::ExecuteInstruction( byte opcode, Gameboy * gb ) {
 		}
 		case 0xe6: {
 			// AND A, d8
-			And( A, PopPC(gb) );
+			And( A, PopPC( gb ) );
 			break;
 		}
 		case 0xe7: {
@@ -1347,7 +1347,7 @@ void Cpu::ExecuteInstruction( byte opcode, Gameboy * gb ) {
 		}
 		case 0xe8: {
 			// ADD SP, r8
-			Add16Signed( SP, PopPC(gb) );
+			Add16Signed( SP, PopPC( gb ) );
 			SetZ( false );
 			break;
 		}
@@ -1358,7 +1358,7 @@ void Cpu::ExecuteInstruction( byte opcode, Gameboy * gb ) {
 		}
 		case 0xea: {
 			// LD (a16), A
-			gb->Write( PopPC16(gb), A.Get() );
+			gb->Write( PopPC16( gb ), A.Get() );
 			break;
 		}
 		case 0xeb: {
@@ -1375,7 +1375,7 @@ void Cpu::ExecuteInstruction( byte opcode, Gameboy * gb ) {
 		}
 		case 0xee: {
 			// XOR A, d8
-			Xor( A, PopPC(gb) );
+			Xor( A, PopPC( gb ) );
 			break;
 		}
 		case 0xef: {
@@ -1385,14 +1385,14 @@ void Cpu::ExecuteInstruction( byte opcode, Gameboy * gb ) {
 		}
 		case 0xf0: {
 			// LDH A, (a8)
-			A.Set( gb->Read( 0xFF00 + PopPC(gb) ) );
+			A.Set( gb->Read( 0xFF00 + PopPC( gb ) ) );
 			break;
 		}
 		case 0xf1: {
 			// POP AF
-			uint16 val = PopStack(gb);
-			A.Set(val >> 8);
-			F.Set(val);
+			uint16 val = PopStack( gb );
+			A.Set( val >> 8 );
+			F.Set( val );
 			break;
 		}
 		case 0xf2: {
@@ -1411,13 +1411,13 @@ void Cpu::ExecuteInstruction( byte opcode, Gameboy * gb ) {
 		}
 		case 0xf5: {
 			// PUSH AF
-			uint16 val = ((uint16)(A.Get()) << 8) | F.Get();
+			uint16 val = ( ( uint16 )( A.Get() ) << 8 ) | F.Get();
 			PushStack( val, gb );
 			break;
 		}
 		case 0xf6: {
 			// OR A, d8
-			Or( A, PopPC(gb) );
+			Or( A, PopPC( gb ) );
 			break;
 		}
 		case 0xf7: {
@@ -1428,7 +1428,7 @@ void Cpu::ExecuteInstruction( byte opcode, Gameboy * gb ) {
 		case 0xf8: {
 			// LD HL, SP+r8
 			HL.Set( SP.Get() );
-			Add16Signed( HL, PopPC(gb) );
+			Add16Signed( HL, PopPC( gb ) );
 			break;
 		}
 		case 0xf9: {
@@ -1438,7 +1438,7 @@ void Cpu::ExecuteInstruction( byte opcode, Gameboy * gb ) {
 		}
 		case 0xfa: {
 			// LD A, (a16)
-			A.Set( gb->Read( PopPC16(gb) ) );
+			A.Set( gb->Read( PopPC16( gb ) ) );
 			break;
 		}
 		case 0xfb: {
@@ -1456,7 +1456,7 @@ void Cpu::ExecuteInstruction( byte opcode, Gameboy * gb ) {
 		}
 		case 0xfe: {
 			// CP A, d8
-			Cp( A, PopPC(gb) );
+			Cp( A, PopPC( gb ) );
 			break;
 		}
 		case 0xff: {

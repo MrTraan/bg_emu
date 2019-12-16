@@ -34,7 +34,7 @@ enum eGameBoyKeyValue : byte {
 	GB_KEY_B = 1,
 	GB_KEY_SELECT = 2,
 	GB_KEY_START = 3,
-	
+
 	GB_KEY_RIGHT = 4,
 	GB_KEY_LEFT = 5,
 	GB_KEY_UP = 6,
@@ -42,19 +42,19 @@ enum eGameBoyKeyValue : byte {
 };
 
 class Keyboard {
-   public:
-	static void Init(Window& window);
+public:
+	static void Init( Window & window );
 	static void Update();
 
-	static void RegisterKeyPress(int key);
-	static void RegisterKeyRelease(int key);
+	static void RegisterKeyPress( int key );
+	static void RegisterKeyRelease( int key );
 
-	static bool IsKeyDown(eKey key);
-	static bool IsKeyPressed(eKey key);
-	
+	static bool IsKeyDown( eKey key );
+	static bool IsKeyPressed( eKey key );
+
 	static Gameboy * s_gb;
 
-   private:
-	static int keyDowns[MAX_CONCURRENT_KEY_DOWN];
-	static int keyPressed[MAX_CONCURRENT_KEY_DOWN];
+private:
+	static int keyDowns[ MAX_CONCURRENT_KEY_DOWN ];
+	static int keyPressed[ MAX_CONCURRENT_KEY_DOWN ];
 };

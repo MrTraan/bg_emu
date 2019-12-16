@@ -30,13 +30,11 @@ struct SimpleTexture {
 		glTexImage2D( GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, buffer );
 	}
 
-	void SetPixel(const Pixel & pixel, int x, int y) {
-		gbemu_assert(x < width);
-		gbemu_assert(y < height);
-		buffer[x + y * width] = pixel;
+	void SetPixel( const Pixel & pixel, int x, int y ) {
+		gbemu_assert( x < width );
+		gbemu_assert( y < height );
+		buffer[ x + y * width ] = pixel;
 	}
 
-	void Clear() {
-		memset(buffer, 0, width * height * sizeof(Pixel));
-	}
+	void Clear() { memset( buffer, 0, width * height * sizeof( Pixel ) ); }
 };
