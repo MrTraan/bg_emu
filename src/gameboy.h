@@ -53,8 +53,11 @@ struct Gameboy {
 
 	bool	shouldRun = true;
 	bool	shouldStep = false;
+	bool	dumpOPcodesToStdout = false;
 	int		PCBreakpoint = -1;
 	bool	skipBios = true;
+	uint64	totalInstructions = 0;
+	uint64	instructionCountBreakpoint = 0;
 
 	static byte DMG_BIOS[ 0x100 ];
 	static byte CGB_BIOS[ 0x901 ];
@@ -77,6 +80,7 @@ struct Gameboy {
 	byte ReadHighRam( uint16 addr );
 	void HDMATransfer();
 	void DMATransfer( byte value );
-	void DMATransfer_GBC() { DEBUG_BREAK; }
+	void DMATransfer_CGB( byte value );
+	void PerformDMATransfer( uint16 length );
 	void RaiseInterupt( byte code );
 };

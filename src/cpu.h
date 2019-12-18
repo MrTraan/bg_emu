@@ -58,20 +58,28 @@ struct Cpu {
 
 	bool IsCGB = false;
 
-	void Reset( bool skipBios ) {
+	void Reset( bool skipBios, bool isCGB ) {
 		if ( skipBios ) {
 			PC = 0x100;
 		} else {
 			PC = 0x0;
 		}
+		if ( isCGB ) {
+			A.Set(0x11);
+			F.Set(0x80);
+		} else {
+			A.Set(0x01);
+			F.Set(0xB0);
+		}
 		A.Set( 0x01 );
 		F.Set( 0xF0 );
-		BC.Set( 0x0013 );
-		DE.Set( 0x00d8 );
-		HL.Set( 0x014d );
+		BC.Set( 0x0000 );
+		DE.Set( 0xFF56 );
+		HL.Set( 0x000D );
 		SP.Set( 0xFFFE );
 		F.mask = 0xF0;
 
+		IsCGB = isCGB;
 		speed = 1;
 		divider = 0;
 		additionnalTicks = 0;

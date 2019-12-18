@@ -2,6 +2,7 @@
 #include <ctype.h>
 #include <string.h>
 #include "rom.h"
+#include "cpu.h"
 #include <imgui/imgui.h>
 
 bool Cartridge::forceDMGMode = false;
@@ -42,17 +43,20 @@ Cartridge * Cartridge::LoadFromFile( const char * path ) {
 		memset( rom->data, 0, sizeof( rom->data ) );
 		memcpy( rom->data, cartData, size );
 		cart = rom;
+		rom->ramEnabled = ROMHasRAM( cartType );
 	} else if ( ROMIsMBC5( cartType ) ) {
 		MBC5 * rom = new MBC5();
 		gbemu_assert( sizeof( rom->data ) >= size );
 		memset( rom->data, 0, sizeof( rom->data ) );
 		memcpy( rom->data, cartData, size );
 		cart = rom;
+		rom->ramEnabled = ROMHasRAM( cartType );
 	} else {
 		DEBUG_BREAK;
 	}
 
 	if ( cart != nullptr ) {
+		cart->rawMemorySize = size;
 		cart->type = cartType;
 		if ( cartData[0x143] == 0x80 ) {
 			cart->mode = CGB_DMG;
@@ -72,6 +76,7 @@ Cartridge * Cartridge::LoadFromFile( const char * path ) {
 			cart->romName[ i ] = tolower( c );
 		}
 		cart->romName[ 0xE ] = 0;
+		//cart->GenerateSourceCode();
 	}
 	delete[] cartData;
 	return cart;
@@ -79,7 +84,36 @@ Cartridge * Cartridge::LoadFromFile( const char * path ) {
 
 void Cartridge::DebugDraw() {
 	ImGui::Checkbox("Force DMG", &forceDMGMode);
-	ImGui::Text("ROM size: %#llx", GetRawMemorySize());
+	ImGui::Text("ROM size: %#llx", rawMemorySize);
+}
+
+void Cartridge::GenerateSourceCode() {
+	char buf[100] = {};
+	for ( int addr = 0; addr < rawMemorySize; addr++ ) {
+		byte romValue = GetRawMemory()[addr];
+		sourceCodeAddresses.push_back(addr);
+
+		const char *	instructionName = Cpu::s_instructionsNames[ romValue ];
+		byte			instructionSize = Cpu::s_instructionsSize[ romValue ];
+
+		if ( instructionSize == 1 ) {
+			snprintf(buf, 100, "0x%04x 0x%02x %s", addr, romValue, instructionName );
+		}
+		if ( instructionSize == 2 ) {
+			byte arg = Read( addr + 1 );
+			snprintf(buf, 100, "0x%04x 0x%02x %s %#x", addr, romValue, instructionName, arg );
+			addr++;
+		}
+		if ( instructionSize == 3 ) {
+			byte	val1 = Read( addr + 1 );
+			byte	val2 = Read( addr + 2 );
+			uint16	arg = ( (uint16)val2 << 8 ) | val1;
+			snprintf(buf, 100, "0x%04x 0x%02x %s %#x", addr, romValue, instructionName, arg );
+			addr += 2;
+		}
+
+		sourceCodeLines.push_back(buf);
+	}
 }
 
 byte MBC1::Read( uint16 addr ) {
@@ -89,6 +123,16 @@ byte MBC1::Read( uint16 addr ) {
 		return data[ addr - 0x4000 + romBank * 0x4000 ];
 	} else {
 		return ram[ ramBank * 0x2000 + addr - 0xa000 ];
+	}
+}
+
+int MBC1::DebugResolvePC( uint16 PC ) {
+	if ( PC < 0x4000 ) {
+		return PC;
+	} else if ( PC < 0x8000 ) {
+		return PC - 0x4000 + romBank * 0x4000;
+	} else {
+		return 0;
 	}
 }
 
@@ -149,6 +193,16 @@ byte MBC5::Read( uint16 addr ) {
 		return data[ addr - 0x4000 + romBank * 0x4000 ];
 	} else {
 		return ram[ ramBank * 0x2000 + addr - 0xa000 ];
+	}
+}
+
+int MBC5::DebugResolvePC( uint16 PC ) {
+	if ( PC < 0x4000 ) {
+		return PC;
+	} else if ( PC < 0x8000 ) {
+		return PC - 0x4000 + romBank * 0x4000;
+	} else {
+		return 0;
 	}
 }
 

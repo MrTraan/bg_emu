@@ -21,6 +21,22 @@ void Gameboy::ResetMemory() {
 		mem.bgPalette.palette[ i ] = 0xff;
 		mem.spritePalette.palette[ i ] = 0xff;
 	}
+	mem.bgPalette.palette[0] = 0x7fff;
+	mem.bgPalette.palette[1] = 0x027f;
+	mem.bgPalette.palette[2] = 0x0273;
+	mem.bgPalette.palette[3] = 0x0c63;
+	mem.bgPalette.palette[4] = 0x7fff;
+	mem.bgPalette.palette[5] = 0x023f;
+	mem.bgPalette.palette[6] = 0x001f;
+	mem.bgPalette.palette[7] = 0x0c63;
+	mem.bgPalette.palette[8] = 0x7fff;
+	mem.bgPalette.palette[9] = 0x03f3;
+	mem.bgPalette.palette[10] = 0x7eeb;
+	mem.bgPalette.palette[11] = 0x0c63;
+	mem.bgPalette.palette[12] = 0x7fff;
+	mem.bgPalette.palette[13] = 0x7e50;
+	mem.bgPalette.palette[14] = 0x6420;
+	mem.bgPalette.palette[15] = 0x0c63;
 
 	// Set the default values
 	//mem.highRAM[ 0x04 ] = 0x68;
@@ -108,7 +124,7 @@ void Gameboy::Write( uint16 addr, byte value ) {
 		mem.workRAM[ addr - 0xC000 ] = value;
 	} else if ( addr < 0xE000 ) {
 		// Work RAM with banking
-		mem.workRAM[ addr - 0xC000 + ( mem.workRAMBankIndex * 0x1000 ) ] = value;
+		mem.workRAM[ addr - 0xC000 + ( (uint16)mem.workRAMBankIndex * 0x1000 ) ] = value;
 	} else if ( addr < 0xFE00 ) {
 		// Echo RAM, don't know yet what to do with that
 		// DEBUG_BREAK;
@@ -157,7 +173,7 @@ byte Gameboy::Read( uint16 addr ) {
 			return mem.workRAM[ addr - 0xc000 ];
 		case 0xd:
 			// Work RAM with banking
-			return mem.workRAM[ addr - 0xc000 + ( mem.workRAMBankIndex * 0x1000 ) ];
+			return mem.workRAM[ addr - 0xc000 + ( (uint16)mem.workRAMBankIndex * 0x1000 ) ];
 		case 0xe:
 		case 0xf: {
 			if ( addr < 0xFE00 ) {
@@ -168,7 +184,7 @@ byte Gameboy::Read( uint16 addr ) {
 				return mem.OAM[ addr - 0xFE00 ];
 			} else if ( addr < 0xFF00 ) {
 				// Unusable memory
-				return 0;
+				return 0xff;
 			} else {
 				return ReadHighRam( addr );
 			}
@@ -220,6 +236,9 @@ byte Gameboy::ReadHighRam( uint16 addr ) {
 }
 
 void Gameboy::WriteHighRam( uint16 addr, byte value ) {
+	if (addr == 0xff69) {
+		printf("wot\n");
+	}
 	if ( addr >= 0xfa0 && addr < 0xfeff ) {
 		// You can't write here, sorry!
 		return;
@@ -278,7 +297,7 @@ void Gameboy::WriteHighRam( uint16 addr, byte value ) {
 			break;
 		case 0x55:
 			if ( cpu.IsCGB ) {
-				DMATransfer( value );
+				DMATransfer_CGB( value );
 			}
 			break;
 		case 0x68:
@@ -316,6 +335,25 @@ void Gameboy::WriteHighRam( uint16 addr, byte value ) {
 	}
 }
 
+void Gameboy::DMATransfer_CGB( byte value ) {
+	if ( mem.hdmaActive && BIT_VALUE(value, 7) == 0 ) {
+		// cancel an existing transfer
+		mem.hdmaActive = false;
+		mem.highRAM[0x55] |= 0x80;
+		return;
+	}
+
+	uint16 length = (((uint16)value & 0x7f) + 1) * 0x10;
+
+	if ( value >> 7 == 0 ) {
+		PerformDMATransfer(length);
+		mem.highRAM[0x55] = 0xff;
+	} else {
+		mem.hdmaLength = value;
+		mem.hdmaActive = true;
+	}
+}
+
 void Gameboy::DMATransfer( byte value ) {
 	uint16 addr = (uint16)value << 8;
 	for ( uint16 i = 0; i < 0xa0; i++ ) {
@@ -328,11 +366,23 @@ void Gameboy::HDMATransfer() {
 		return;
 	}
 
+	PerformDMATransfer( 0x10 );
+	if ( mem.hdmaLength > 0 ) {
+		mem.hdmaLength--;
+		mem.highRAM[ 0x55 ] = mem.hdmaLength;
+	} else {
+		// HDMA has finished
+		mem.highRAM[ 0x55 ] = 0xff;
+		mem.hdmaActive = false;
+	}
+}
+
+void Gameboy::PerformDMATransfer( uint16 length ) {
 	uint16 source = (uint16)mem.highRAM[ 0x51 ] << 8 | (uint16)mem.highRAM[ 0x52 ] & 0xfff0;
 	uint16 dest = (uint16)mem.highRAM[ 0x53 ] << 8 | (uint16)mem.highRAM[ 0x54 ] & 0x1ff0;
 	dest += 0x8000;
 
-	for ( uint16 i = 0; i < 0x10; i++ ) {
+	for ( uint16 i = 0; i < length; i++ ) {
 		Write( dest, Read( source ) );
 		dest++;
 		source++;
@@ -342,15 +392,6 @@ void Gameboy::HDMATransfer() {
 	mem.highRAM[ 0x52 ] = BIT_LOW_8( source );
 	mem.highRAM[ 0x53 ] = BIT_HIGH_8( dest );
 	mem.highRAM[ 0x54 ] = dest & 0xf0;
-
-	if ( mem.hdmaLength > 0 ) {
-		mem.hdmaLength--;
-		mem.highRAM[ 0x55 ] = mem.hdmaLength;
-	} else {
-		// HDMA has finished
-		mem.highRAM[ 0x55 ] = 0xff;
-		mem.hdmaActive = false;
-	}
 }
 
 void Gameboy::RaiseInterupt( byte code ) {

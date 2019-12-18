@@ -8,6 +8,8 @@ typedef unsigned short	uint16;
 typedef short			int16;
 typedef unsigned int	uint32;
 typedef int				int32;
+typedef unsigned long long uint64;
+typedef long long		int64;
 
 #define BIT_VALUE( x, n )  ( ( x >> n ) & 1 )
 #define BIT_IS_SET( x, n ) ( ( ( x >> n ) & 1 ) == 1 )
@@ -16,7 +18,7 @@ typedef int				int32;
 #define BIT_HIGH_8( x )	   ( ( byte )( ( x & 0xFF00 ) >> 8 ) )
 #define BIT_LOW_8( x )	   ( ( byte )( x & 0xFF ) )
 #define MIN( x, y )		   ( x < y ? x : y )
-#define MAX( x, y )		   ( x >= y ? x : y )
+#define MAX( x, y )		   ( (x) >= (y) ? x : y )
 
 #define GBEMU_UNSUPPORTED_PLATFORM static_assert( false, "Platform specific not handled here" );
 

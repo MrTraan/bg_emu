@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <algorithm>
 #include <stdio.h>
 #include "gameboy.h"
 #include <imgui/imgui.h>
@@ -14,12 +15,13 @@ void Gameboy::RunOneFrame() {
 		int clocks = 4;
 		if ( !cpu.isOnHalt ) {
 			clocks = cpu.ExecuteNextOPCode( this );
+			totalInstructions++;
 		}
 		cpu.cpuTime += clocks;
 		ppu.Update( clocks, this );
 		cpu.UpdateTimer( clocks, this );
 		cpu.cpuTime += cpu.ProcessInterupts( this );
-		if ( PCBreakpoint == cpu.PC ) {
+		if ( PCBreakpoint == cpu.PC || instructionCountBreakpoint == totalInstructions ) {
 			shouldRun = false;
 		}
 		shouldStep = false;
@@ -27,13 +29,13 @@ void Gameboy::RunOneFrame() {
 }
 
 void Gameboy::Reset() {
+	totalInstructions = 0;
 	ResetMemory();
 	apu.reset();
-	cpu.Reset( skipBios );
 	if ( cart->mode == DMG || (cart->mode == CGB_DMG && Cartridge::forceDMGMode )) {
-		cpu.IsCGB = false;
+		cpu.Reset( skipBios, false);
 	} else {
-		cpu.IsCGB = true;
+		cpu.Reset( skipBios, true);
 	}
 	ppu.Reset();
 }
@@ -170,12 +172,22 @@ void Gameboy::DebugDraw() {
 	ImGui::Text( "Last instruction: %s", Cpu::s_instructionsNames[ cpu.lastInstructionOpCode ] );
 	ImGui::Text( "Next instruction: %s", Cpu::s_instructionsNames[ Read( cpu.PC ) ] );
 	ImGui::Checkbox( "Skip bios", &skipBios );
+	ImGui::SameLine();
+	ImGui::Checkbox( "Print OPCodes", &dumpOPcodesToStdout );
 
-	static char buf[ 64 ] = "";
-	ImGui::InputText( "Break at PC: ", buf, 64, ImGuiInputTextFlags_CharsHexadecimal | ImGuiInputTextFlags_CharsUppercase );
-	if ( buf[ 0 ] != '\0' ) {
-		PCBreakpoint = strtol( buf, nullptr, 16 );
+	ImGui::Text("Total instructions: %lld", totalInstructions);
+
+	static char PCBreakpointStr[ 64 ] = "";
+	ImGui::InputText( "Break at PC: ", PCBreakpointStr, 64, ImGuiInputTextFlags_CharsHexadecimal | ImGuiInputTextFlags_CharsUppercase );
+	if ( PCBreakpointStr[ 0 ] != '\0' ) {
+		PCBreakpoint = strtol( PCBreakpointStr, nullptr, 16 );
 	}
+	static char InstructionBreakpointStr[ 64 ] = "";
+	ImGui::InputText( "Break at instruction Count: ", InstructionBreakpointStr, 64, ImGuiInputTextFlags_CharsHexadecimal | ImGuiInputTextFlags_CharsUppercase );
+	if ( InstructionBreakpointStr[ 0 ] != '\0' ) {
+		instructionCountBreakpoint = strtoull( InstructionBreakpointStr, nullptr, 10 );
+	}
+
 	if ( ImGui::Button( "Step" ) ) {
 		shouldStep = true;
 	}
@@ -183,6 +195,10 @@ void Gameboy::DebugDraw() {
 	static int showRomCode = false;
 	if ( ImGui::Button( showRomCode ? "Hide ROM Code" : "Show ROM Code" ) ) {
 		showRomCode = !showRomCode;
+	}
+	ImGui::SameLine();
+	if ( ImGui::Button( "Generate ROM Code" ) && cart != nullptr ) {
+		cart->GenerateSourceCode();
 	}
 
 	static int showMemoryInspector = false;
@@ -209,52 +225,40 @@ void Gameboy::DebugDraw() {
 		}
 	}
 
-	if ( showRomCode ) {
+	if ( showRomCode && cart != nullptr ) {
 		ImGui::Begin( "ROM Code" );
 		ImGui::BeginGroup();
 
-		ImGui::BeginChild( ImGui::GetID( (void *)(intptr_t)0 ) );
-		for ( int addr = 0; addr < 0x8000; addr++ ) {
-			byte romValue = Read( addr );
+		ImGui::BeginChild( ImGui::GetID( "ROM CODE DUMP" ) );
+		int remainingLines = 100; // TMP: it is really slow to display a huge list with ImGUI, this is temporary to reduce pressure
+		bool pcFound = false;
+		int PC = cart->DebugResolvePC(cpu.PC);
+		int startIndex = 0;
 
-			if ( romValue == 0 ) {
-				continue; // Displaying a large list cause a huge performance hit, so we might as well not display NOP
-			}
+		//binary search our address
+		auto it = std::lower_bound(cart->sourceCodeAddresses.begin(), cart->sourceCodeAddresses.end(), PC);
+		if (it == cart->sourceCodeAddresses.end() || *it != PC) {
+			startIndex = 0;
+		} else {
+			std::size_t index = std::distance(cart->sourceCodeAddresses.begin(), it);
+			startIndex = MAX(index - 100, 0);
+		}   
 
-			const char *	instructionName = Cpu::s_instructionsNames[ romValue ];
-			byte			instructionSize = Cpu::s_instructionsSize[ romValue ];
-
+		for ( int i = startIndex; i < startIndex + 200 && i < cart->sourceCodeLines.size(); i++) {
+			const std::string & line = cart->sourceCodeLines[i];
 			bool colored = false;
-			if ( addr == cpu.PC ) {
+			if ( cart->sourceCodeAddresses[i] == PC ) {
 				colored = true;
+				pcFound = true;
 				ImGui::SetScrollHereY( 0.5f ); // 0.0f:top, 0.5f:center, 1.0f:bottom
 			}
-			if ( instructionSize == 1 ) {
-				if ( colored ) {
-					ImGui::TextColored( ImVec4( 1, 1, 0, 1 ), "0x%04x %s", addr, instructionName );
-				} else {
-					ImGui::Text( "0x%04x %s", addr, instructionName );
-				}
+			if ( colored ) {
+				ImGui::TextColored( ImVec4( 1, 1, 0, 1 ), line.c_str() );
+			} else {
+				ImGui::Text( line.c_str() );
 			}
-			if ( instructionSize == 2 ) {
-				byte arg = Read( addr + 1 );
-				if ( colored ) {
-					ImGui::TextColored( ImVec4( 1, 1, 0, 1 ), "0x%04x %s %#x", addr, instructionName, arg );
-				} else {
-					ImGui::Text( "0x%04x %s %#x", addr, instructionName, arg );
-				}
-				addr++;
-			}
-			if ( instructionSize == 3 ) {
-				byte	val1 = Read( addr + 1 );
-				byte	val2 = Read( addr + 2 );
-				uint16	arg = ( (uint16)val2 << 8 ) | val1;
-				if ( colored ) {
-					ImGui::TextColored( ImVec4( 1, 1, 0, 1 ), "0x%04x %s %#x", addr, instructionName, arg );
-				} else {
-					ImGui::Text( "0x%04x %s %#x", addr, instructionName, arg );
-				}
-				addr += 2;
+			if (pcFound && remainingLines-- <= 0) {
+				break;
 			}
 		}
 		ImGui::EndChild();
@@ -268,7 +272,7 @@ void Gameboy::DebugDraw() {
 		mem_edit.DrawWindow( "OAM", mem.OAM, 0xa0, 0x0 );
 		mem_edit.DrawWindow( "WorkRAM", mem.workRAM, 0x9000, 0x0 );
 		if ( cart != nullptr ) {
-			mem_edit.DrawWindow( "ROM", cart->GetRawMemory(), cart->GetRawMemorySize(), 0x0 );
+			mem_edit.DrawWindow( "ROM", cart->GetRawMemory(), cart->rawMemorySize, 0x0 );
 		}
 	}
 }

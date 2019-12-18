@@ -1,6 +1,8 @@
 #pragma once
 
 #include "gb_emu.h"
+#include <vector>
+#include <string>
 
 // There are 5 different types of ROM, for now we handle only the basic type (Tetris is one of them)
 
@@ -57,6 +59,7 @@ public:
 	virtual void	WriteRAM( uint16 addr, byte val ) = 0;
 	virtual byte *	GetRawMemory() = 0;
 	virtual int		GetRawMemorySize() = 0;
+	virtual int		DebugResolvePC(uint16 PC) = 0;
 
 	static bool forceDMGMode;
 	virtual void DebugDraw();
@@ -67,6 +70,12 @@ public:
 	ColorMode mode;
 	char romName[ 0xF ];
 	char romPath[ 0x200 ];
+	int rawMemorySize = 0;
+
+	std::vector<std::string> sourceCodeLines;
+	std::vector<uint32> sourceCodeAddresses;
+
+	void GenerateSourceCode();
 };
 
 class ROM : public Cartridge {
@@ -74,6 +83,7 @@ public:
 	byte data[ 0x8000 ];
 
 	virtual byte Read( uint16 addr ) override { return data[ addr ]; }
+	virtual int DebugResolvePC(uint16 PC) override { return PC; }
 	virtual void Write( uint16 addr, byte val ) override {}
 	virtual void WriteRAM( uint16 addr, byte val ) override {}
 
@@ -89,13 +99,12 @@ public:
 
 	byte	ram[ 0x8000 ];
 	uint16	ramBank = 1;
-	bool	ramEnabled = false;
+	bool	ramEnabled = true;
 
 	virtual byte Read( uint16 addr ) override;
-
 	virtual void Write( uint16 addr, byte val ) override;
-
 	virtual void WriteRAM( uint16 addr, byte val ) override;
+	virtual int DebugResolvePC(uint16 PC) override;
 
 	virtual byte *	GetRawMemory() { return data; }
 	virtual int		GetRawMemorySize() { return 0x80000; }
@@ -109,13 +118,12 @@ public:
 
 	byte	ram[ 0x20000 ];
 	uint16	ramBank = 0;
-	bool	ramEnabled = false;
+	bool	ramEnabled = true;
 
 	virtual byte Read( uint16 addr ) override;
-
 	virtual void Write( uint16 addr, byte val ) override;
-
 	virtual void WriteRAM( uint16 addr, byte val ) override;
+	virtual int DebugResolvePC(uint16 PC) override;
 
 	virtual byte *	GetRawMemory() { return data; }
 	virtual int		GetRawMemorySize() { return 0x100000; }

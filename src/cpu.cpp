@@ -30,13 +30,10 @@ int Cpu::ExecuteNextOPCode( Gameboy * gb ) {
 	int		ticksUsed = opcodeCyclesCost[ opcode ] * 4;
 	additionnalTicks = 0;
 	lastInstructionOpCode = opcode;
-	// printf("%s\n", s_instructionsNames[opcode]);
-	// static bool startLogging = false;
-	// if ( PC - 1 == 0x100 ) {
-	//	startLogging = true;
-	//}
-	// if (startLogging)
-	// printf("0x%02x 0x%04x\n", opcode, PC - 1);
+
+	if (gb->dumpOPcodesToStdout) {
+		printf("0x%02x 0x%04x\n", opcode, PC - 1);
+	}
 
 	ExecuteInstruction( opcode, gb );
 	return ticksUsed + additionnalTicks;
@@ -46,15 +43,15 @@ void Cpu::UpdateTimer( int clock, Gameboy * gb ) {
 	divider += clock;
 	if ( divider >= 255 ) {
 		divider -= 255;
-		byte div = gb->Read( DIV );
-		if ( div == 255 )
+		if (gb->mem.highRAM[ DIV - 0xFF00 ] == 0xff) {
 			gb->mem.highRAM[ DIV - 0xFF00 ] = 0;
-		else
+		} else {
 			gb->mem.highRAM[ DIV - 0xFF00 ]++;
+		}
 	}
 
-	byte			tac = gb->mem.highRAM[ TAC - 0xFF00 ];
-	byte			frequency = tac & 3;
+	byte			tac = gb->Read( TAC );
+	byte			frequency = MAX(tac & 3, 3);
 	constexpr int	threshold[ 4 ] = { 1024, 16, 64, 256 };
 
 	if ( !BIT_IS_SET( tac, 2 ) )
@@ -63,12 +60,12 @@ void Cpu::UpdateTimer( int clock, Gameboy * gb ) {
 	clockCounter += clock;
 	if ( clockCounter > threshold[ frequency ] ) {
 		clockCounter -= threshold[ frequency ];
-		byte tima = gb->mem.highRAM[ TIMA - 0xFF00 ];
+		byte tima = gb->Read( TIMA );
 		if ( tima == 0xFF ) {
-			gb->mem.highRAM[ TIMA - 0xFF00 ] = gb->mem.highRAM[ TMA - 0xFF00 ];
+			gb->mem.highRAM[ TIMA - 0xFF00 ] = gb->Read( TMA );
 			gb->RaiseInterupt( 2 );
 		} else {
-			gb->mem.highRAM[ TIMA - 0xFF00 ]++;
+			gb->mem.highRAM[ TIMA - 0xFF00 ] = tima + 1;
 		}
 	}
 }
@@ -211,15 +208,17 @@ uint16 Cpu::PopPC16( Gameboy * gb ) {
 
 // Pushes a 16 bit value on the stack, and decrement the stack pointer
 void Cpu::PushStack( uint16 val, Gameboy * gb ) {
-	gb->Write( SP.Get() - 1, BIT_HIGH_8( val ) );
-	gb->Write( SP.Get() - 2, BIT_LOW_8( val ) );
+	uint16 sp = SP.Get();
+	gb->Write( sp - 1, BIT_HIGH_8( val ) );
+	gb->Write( sp - 2, BIT_LOW_8( val ) );
 	SP.Set( SP.Get() - 2 );
 }
 
 // Read the 16 bits on the stack, and increment the stack pointer
 uint16 Cpu::PopStack( Gameboy * gb ) {
-	byte b1 = gb->Read( SP.Get() );
-	byte b2 = gb->Read( SP.Get() + 1 );
+	uint16 sp = SP.Get();
+	byte b1 = gb->Read( sp );
+	byte b2 = gb->Read( sp + 1 );
 	SP.Set( SP.Get() + 2 );
 	return ( (uint16)b2 << 8 ) | b1;
 }
