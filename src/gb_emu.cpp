@@ -81,7 +81,7 @@ int main( int argc, char ** argv ) {
 		romPath = argv[ 1 ];
 	} else {
 		// romPath = "../../../roms/cpu_instrs.gb";
-		romPath = FS_BASE_PATH "/roms/Pokemon_Bleue.gb";
+		romPath = FS_BASE_PATH "/roms/Pokemon - Jaune.gbc";
 	}
 	reset( romPath );
 	if ( gb.cart == nullptr ) {

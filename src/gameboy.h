@@ -10,6 +10,20 @@
 #define TAC	 0xff07
 #define DIV	 0xff04
 
+struct CGBPalette {
+	byte palette[ 0x40 ];
+	byte index;
+	bool autoIncrementOnWrite;
+
+	byte Read() { return palette[ index ]; }
+	void Write( byte value ) {
+		palette[ index ] = value;
+		if ( autoIncrementOnWrite ) {
+			index = ( index + 1 ) & 0x3f;
+		}
+	}
+};
+
 struct Memory {
 	byte highRAM[ 0x100 ];
 	byte VRAM[ 0x4000 ];
@@ -24,6 +38,9 @@ struct Memory {
 
 	byte hdmaLength = 0;
 	bool hdmaActive = false;
+
+	CGBPalette bgPalette;
+	CGBPalette spritePalette;
 };
 
 struct Gameboy {
@@ -37,7 +54,10 @@ struct Gameboy {
 	bool	shouldRun = true;
 	bool	shouldStep = false;
 	int		PCBreakpoint = -1;
-	bool	skipBios = false;
+	bool	skipBios = true;
+
+	static byte DMG_BIOS[ 0x100 ];
+	static byte CGB_BIOS[ 0x901 ];
 
 	void RunOneFrame();
 

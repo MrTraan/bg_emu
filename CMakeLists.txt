@@ -11,6 +11,7 @@ if (WIN32)
 endif()
 
 add_compile_definitions(FS_BASE_PATH="${CMAKE_SOURCE_DIR}/resources")
+add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
 
 set (CMAKE_CXX_STANDARD 17)
 

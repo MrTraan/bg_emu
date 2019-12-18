@@ -4,6 +4,8 @@
 #include "rom.h"
 #include <imgui/imgui.h>
 
+bool Cartridge::forceDMGMode = false;
+
 Cartridge * Cartridge::LoadFromFile( const char * path ) {
 	FILE * fh = fopen( path, "r" );
 	if ( fh == nullptr ) {
@@ -51,6 +53,15 @@ Cartridge * Cartridge::LoadFromFile( const char * path ) {
 	}
 
 	if ( cart != nullptr ) {
+		cart->type = cartType;
+		if ( cartData[0x143] == 0x80 ) {
+			cart->mode = CGB_DMG;
+		} else if ( cartData[0x143] == 0xc0 ) {
+			cart->mode = CGB_ONLY;
+		} else {
+			cart->mode = DMG;
+		}
+
 		strncpy( cart->romPath, path, 0x200 );
 		// Game name is written between 0x134 and 0x142
 		for ( int i = 0; i < 0xE; i++ ) {
@@ -64,6 +75,11 @@ Cartridge * Cartridge::LoadFromFile( const char * path ) {
 	}
 	delete[] cartData;
 	return cart;
+}
+
+void Cartridge::DebugDraw() {
+	ImGui::Checkbox("Force DMG", &forceDMGMode);
+	ImGui::Text("ROM size: %#llx", GetRawMemorySize());
 }
 
 byte MBC1::Read( uint16 addr ) {
@@ -170,6 +186,7 @@ void MBC5::WriteRAM( uint16 addr, byte val ) {
 }
 
 void MBC5::DebugDraw() {
+	Cartridge::DebugDraw();
 	ImGui::Text( "Rom bank: %d", romBank );
 	ImGui::Text( "Ram bank: %d", ramBank );
 }

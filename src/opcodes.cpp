@@ -146,7 +146,14 @@ void Cpu::ExecuteInstruction( byte opcode, Gameboy * gb ) {
 			// STOP 0
 			// Halt();
 			PopPC( gb ); // Read next byte, because this instruction is actualy 2 bytes : 0x10 0x00, no idea why
-						 // TODO: Game boy color change speed
+			if ( IsCGB && speedSwitchRequested ) {
+				speedSwitchRequested = false;	
+				if ( speed == 1 ) {
+					speed = 2;
+				} else {
+					speed = 1;
+				}
+			}
 			break;
 		}
 		case 0x11: {
@@ -1392,7 +1399,7 @@ void Cpu::ExecuteInstruction( byte opcode, Gameboy * gb ) {
 			// POP AF
 			uint16 val = PopStack( gb );
 			A.Set( val >> 8 );
-			F.Set( val );
+			F.Set( (uint8)val );
 			break;
 		}
 		case 0xf2: {

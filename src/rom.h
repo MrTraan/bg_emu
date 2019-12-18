@@ -36,8 +36,15 @@ enum ROMType : byte {
 	CART_TYPE_HUC1_RAM_BATTERY = 0xFF,
 };
 
+enum ColorMode : byte {
+	DMG,
+	CGB_DMG,
+	CGB_ONLY,
+};
+
 bool ROMHasBattery( ROMType type );
 bool ROMHasRAM( ROMType type );
+bool ROMIsBasicROM( ROMType type );
 bool ROMIsMBC1( ROMType type );
 bool ROMIsMBC2( ROMType type );
 bool ROMIsMBC3( ROMType type );
@@ -51,10 +58,13 @@ public:
 	virtual byte *	GetRawMemory() = 0;
 	virtual int		GetRawMemorySize() = 0;
 
-	virtual void DebugDraw() {}
+	static bool forceDMGMode;
+	virtual void DebugDraw();
 
 	static Cartridge * LoadFromFile( const char * path );
 
+	ROMType type;
+	ColorMode mode;
 	char romName[ 0xF ];
 	char romPath[ 0x200 ];
 };

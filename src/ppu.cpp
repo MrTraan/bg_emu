@@ -11,7 +11,7 @@ constexpr int lcdMode1Bounds = 144;
 constexpr int lcdMode2Bounds = 376;
 constexpr int lcdMode3Bounds = 204;
 
-static Pixel paletteData[3][4] = {
+static Pixel dmgPaletteColors[3][4] = {
 	{
 		// Greenishy pallete, like the original shitty gameboy screen
 		{0x9B, 0xBC, 0x0F},
@@ -35,7 +35,12 @@ static Pixel paletteData[3][4] = {
 	},
 };
 
-void Ppu::AllocateBuffers(const Window & window) {
+uint8 cgbColorsValue[] = {
+	0x0,  0x8,	0x10, 0x18, 0x20, 0x29, 0x31, 0x39, 0x41, 0x4a, 0x52, 0x5a, 0x62, 0x6a, 0x73, 0x7b,
+	0x83, 0x8b, 0x94, 0x9c, 0xa4, 0xac, 0xb4, 0xbd, 0xc5, 0xcd, 0xd5, 0xde, 0xe6, 0xee, 0xf6, 0xff,
+};
+
+void Ppu::AllocateBuffers( const Window & window ) {
 	frontBuffer.Allocate(0, 20, GB_SCREEN_WIDTH * 4, GB_SCREEN_HEIGHT * 4, window);
 	backBuffer.Allocate(0, 20, GB_SCREEN_WIDTH * 4, GB_SCREEN_HEIGHT * 4, window);
 	frontBuffer.texture.Allocate(GB_SCREEN_WIDTH, GB_SCREEN_HEIGHT);
@@ -56,6 +61,7 @@ void Ppu::Update(int cycles, Gameboy * gb) {
 
 	if (!IsLcdOn(gb)) {
 		scanlineCounter = 456;
+		gb->mem.highRAM[0x44] = 0;
 		status &= 0xfc;
 		status = BIT_UNSET(status, 0);
 		status = BIT_UNSET(status, 1);
@@ -121,6 +127,7 @@ void Ppu::Update(int cycles, Gameboy * gb) {
 		gb->Write(0xff44, currentLine);
 		if (currentLine > 153) {
 			SwapBuffers();
+			memset(bgPriority, 0, sizeof(bgPriority));
 			gb->Write(0xff44, 0);
 			currentLine = 0;
 		}
@@ -135,7 +142,7 @@ void Ppu::Update(int cycles, Gameboy * gb) {
 void Ppu::DrawScanLine(int scanline, Gameboy * gb) {
 	byte control = gb->Read(0xff40);
 
-	if ((gb->cpu.IsCGB() || BIT_IS_SET(control, 0)) && debugDrawTiles) {
+	if ((gb->cpu.IsCGB || BIT_IS_SET(control, 0)) && debugDrawTiles) {
 		DrawTiles(scanline, control, gb);
 	}
 
@@ -145,17 +152,23 @@ void Ppu::DrawScanLine(int scanline, Gameboy * gb) {
 }
 
 void Ppu::PutPixel(byte x, byte y, byte tileAttr, byte colorIndex, byte palette, bool priority, Gameboy * gb) {
-	if (gb->cpu.IsCGB()) {
-		DEBUG_BREAK;
+	Pixel pixel;
+	if (gb->cpu.IsCGB) {
+		byte cgbPalette = tileAttr & 0x7;
+		byte index = cgbPalette * 8 + colorIndex * 2;
+		uint16 color = gb->mem.bgPalette.palette[index] | gb->mem.bgPalette.palette[index + 1] << 8;
+		pixel.R = cgbColorsValue[ color & 0x1f ];
+		pixel.G = cgbColorsValue[ ( color >> 5 ) & 0x1f ];
+		pixel.B = cgbColorsValue[ ( color >> 10 ) & 0x1f ];
 	}
 	else {
 		byte highBit = colorIndex << 1 | 1;
 		byte lowBit = colorIndex << 1;
 		byte column = (BIT_VALUE(palette, highBit) << 1) | BIT_VALUE(palette, lowBit);
-		Pixel & pixel = paletteData[selectedPalette][column];
-		if ( (priority && true /*bgPriority*/ ) || tileScanLine[x] == 0 ) {
-			workBuffer->texture.SetPixel(pixel, x, y);
-		}
+		pixel = dmgPaletteColors[selectedPalette][column];
+	}
+	if ( (priority && bgPriority[x + y * GB_SCREEN_WIDTH] == 0 ) || tileScanLine[x] == 0 ) {
+		workBuffer->texture.SetPixel(pixel, x, y);
 	}
 }
 
@@ -229,13 +242,13 @@ void Ppu::DrawTiles(int scanline, byte control, Gameboy * gb) {
 		bool vflip = BIT_IS_SET(tileAttr, 6);
 		bool priority = BIT_IS_SET(tileAttr, 7);
 
-		uint16 bankOffset = gb->cpu.IsCGB() && useBank1 ? 0x2000 : 0x0000;
-		byte line = gb->cpu.IsCGB() && vflip ? ((7 - yPos) % 8) * 2 : (yPos % 8) * 2;
+		uint16 bankOffset = gb->cpu.IsCGB && useBank1 ? 0x2000 : 0x0000;
+		byte line = gb->cpu.IsCGB && vflip ? ((7 - yPos) % 8) * 2 : (yPos % 8) * 2;
 
 		byte tileData1 = gb->Read(tileLocation + line + bankOffset);
 		byte tileData2 = gb->Read(tileLocation + line + bankOffset + 1);
 
-		if (gb->cpu.IsCGB() && hflip) {
+		if (gb->cpu.IsCGB && hflip) {
 			xPos = 7 - xPos;
 		}
 		byte colorBit = (int8)((xPos % 8) - 7) * -1;
@@ -243,6 +256,9 @@ void Ppu::DrawTiles(int scanline, byte control, Gameboy * gb) {
 		// Draw if sprite has priority of if no pixel has been drawn there
 		PutPixel(x, scanline, tileAttr, colorIndex, palette, true, gb);
 		tileScanLine[x] = colorIndex;
+		if (gb->cpu.IsCGB) {
+			bgPriority[x + scanline * GB_SCREEN_WIDTH ] = priority ? 1 : 0;
+		}
 	}
 }
 
@@ -274,9 +290,9 @@ void Ppu::DrawSprites(int scanline, byte control, Gameboy * gb) {
 		bool useBank1 = BIT_IS_SET(spriteAttr, 3);
 		bool hflip = BIT_IS_SET(spriteAttr, 5);
 		bool vflip = BIT_IS_SET(spriteAttr, 6);
-		bool priority = !BIT_IS_SET(spriteAttr, 7); // TODO: unused for now
+		bool priority = !BIT_IS_SET(spriteAttr, 7);
 
-		uint16 bankOffset = gb->cpu.IsCGB() && useBank1 ? 0x2000 : 0x0;
+		uint16 bankOffset = gb->cpu.IsCGB && useBank1 ? 0x2000 : 0x0;
 
 		int line = scanline - yPos;
 		if (vflip) {
@@ -294,7 +310,7 @@ void Ppu::DrawSprites(int scanline, byte control, Gameboy * gb) {
 				continue;
 			}
 			// Check if something was already drawn here
-			if (minX[pixel] != 0 && (gb->cpu.IsCGB() || minX[pixel] <= xPos + 100)) {
+			if (minX[pixel] != 0 && (gb->cpu.IsCGB || minX[pixel] <= xPos + 100)) {
 				continue;
 			}
 
@@ -306,11 +322,7 @@ void Ppu::DrawSprites(int scanline, byte control, Gameboy * gb) {
 				continue;
 			}
 
-			if (gb->cpu.IsCGB()) {
-				DEBUG_BREAK;
-			} else {
-				PutPixel((byte)pixel, (byte)scanline, spriteAttr, colorIndex, BIT_IS_SET(spriteAttr, 4) ? palette2 : palette1, priority, gb);
-			}
+			PutPixel((byte)pixel, (byte)scanline, spriteAttr, colorIndex, BIT_IS_SET(spriteAttr, 4) ? palette2 : palette1, priority, gb);
 
 			minX[pixel] = xPos + 100;
 		}
@@ -333,7 +345,7 @@ void Ppu::DebugDraw(Gameboy * gb) {
 	if (drawBackgroundTexture) {
 		DrawFullBackgroundToTexture(backgroundTexture, backgroundTexture.width, backgroundTexture.height, gb);
 		backgroundTexture.Update();
-		ImGui::Image((void*)(backgroundTexture.textureHandler), ImVec2(backgroundTexture.width, backgroundTexture.height), ImVec2(0,0), ImVec2(1,1), ImVec4(1.0f,1.0f,1.0f,1.0f), ImVec4(1.0f,1.0f,1.0f,0.5f));
+		ImGui::Image((void*)(backgroundTexture.textureHandler), ImVec2((float)backgroundTexture.width, (float)backgroundTexture.height), ImVec2(0,0), ImVec2(1,1), ImVec4(1.0f,1.0f,1.0f,1.0f), ImVec4(1.0f,1.0f,1.0f,0.5f));
 	}
 	static bool drawTileset = false;
 	ImGui::Checkbox( "Draw tileset", &drawTileset);
@@ -341,7 +353,7 @@ void Ppu::DebugDraw(Gameboy * gb) {
 		tilesetTexture.Clear();
 		DrawTilesetToTexture(tilesetTexture, gb);
 		tilesetTexture.Update();
-		ImGui::Image((void*)(tilesetTexture.textureHandler), ImVec2(tilesetTexture.width, tilesetTexture.height), ImVec2(0,0), ImVec2(1,1), ImVec4(1.0f,1.0f,1.0f,1.0f), ImVec4(1.0f,1.0f,1.0f,0.5f));
+		ImGui::Image((void*)(tilesetTexture.textureHandler), ImVec2((float)tilesetTexture.width, (float)tilesetTexture.height), ImVec2(0,0), ImVec2(1,1), ImVec4(1.0f,1.0f,1.0f,1.0f), ImVec4(1.0f,1.0f,1.0f,0.5f));
 	}
 	
 }
@@ -394,13 +406,13 @@ void Ppu::DrawFullBackgroundToTexture(SimpleTexture & texture, int width, int he
 			bool vflip = BIT_IS_SET( tileAttr, 6 );
 			bool priority = BIT_IS_SET( tileAttr, 7 );
 
-			uint16	bankOffset = gb->cpu.IsCGB() && useBank1 ? 0x6000 : 0x8000;
-			byte	line = gb->cpu.IsCGB() && vflip ? ( ( 7 - yPos ) % 8 ) * 2 : ( yPos % 8 ) * 2;
+			uint16	bankOffset = gb->cpu.IsCGB && useBank1 ? 0x6000 : 0x8000;
+			byte	line = gb->cpu.IsCGB && vflip ? ( ( 7 - yPos ) % 8 ) * 2 : ( yPos % 8 ) * 2;
 
 			byte tileData1 = gb->mem.VRAM[ tileLocation + line - bankOffset ];
 			byte tileData2 = gb->mem.VRAM[ tileLocation + line - bankOffset + 1 ];
 
-			if ( gb->cpu.IsCGB() && hflip ) {
+			if ( gb->cpu.IsCGB && hflip ) {
 				xPos = 7 - xPos;
 			}
 			byte	colorBit = ( int8 )( ( xPos % 8 ) - 7 ) * -1;
@@ -416,7 +428,7 @@ void Ppu::DrawFullBackgroundToTexture(SimpleTexture & texture, int width, int he
 				 ( ( yPos == boundYMin || yPos == boundYMax ) && x >= boundXMin && x <= boundXMax ) ) {
 				texture.SetPixel( Pixel{ 0, 0, 0 }, xPos, yPos );
 			} else {
-				texture.SetPixel( paletteData[ selectedPalette ][ column ], xPos, yPos );
+				texture.SetPixel( dmgPaletteColors[ selectedPalette ][ column ], xPos, yPos );
 			}
 		}
 	}
@@ -435,7 +447,7 @@ void Ppu::DrawTilesetToTexture(SimpleTexture & texture, Gameboy * gb) {
 			byte	highBit = colorIndex << 1 | 1;
 			byte	lowBit = colorIndex << 1;
 			byte	column = ( BIT_VALUE( palette, highBit ) << 1 ) | BIT_VALUE( palette, lowBit );
-			Pixel & pixel = paletteData[ selectedPalette ][ column ];
+			Pixel & pixel = dmgPaletteColors[ selectedPalette ][ column ];
 			texture.SetPixel( pixel, x++, y );
 		}
 		line++;

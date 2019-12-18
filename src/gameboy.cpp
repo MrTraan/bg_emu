@@ -10,7 +10,7 @@ void Gameboy::RunOneFrame() {
 	cpu.cpuTime = 0;
 	constexpr int maxClocksThisFrame = GBEMU_CLOCK_SPEED / 60;
 
-	while ( cpu.cpuTime < maxClocksThisFrame && ( shouldRun || shouldStep ) ) {
+	while ( cpu.cpuTime < maxClocksThisFrame * cpu.speed && ( shouldRun || shouldStep ) ) {
 		int clocks = 4;
 		if ( !cpu.isOnHalt ) {
 			clocks = cpu.ExecuteNextOPCode( this );
@@ -30,6 +30,11 @@ void Gameboy::Reset() {
 	ResetMemory();
 	apu.reset();
 	cpu.Reset( skipBios );
+	if ( cart->mode == DMG || (cart->mode == CGB_DMG && Cartridge::forceDMGMode )) {
+		cpu.IsCGB = false;
+	} else {
+		cpu.IsCGB = true;
+	}
 	ppu.Reset();
 }
 
@@ -78,6 +83,7 @@ void Gameboy::DebugDraw() {
 		}
 		apu.volume( volume / 100 );
 	}
+	ImGui::Text( "Cpu speed: %d\n", cpu.speed );
 	ImGui::Columns( 4, "registers" );
 	ImGui::Separator();
 	ImGui::Text( "A" );
@@ -260,6 +266,7 @@ void Gameboy::DebugDraw() {
 		mem_edit.DrawWindow( "VRAM", mem.VRAM, 0x4000, 0x0 );
 		mem_edit.DrawWindow( "HighRAM", mem.highRAM, 0x100, 0x0 );
 		mem_edit.DrawWindow( "OAM", mem.OAM, 0xa0, 0x0 );
+		mem_edit.DrawWindow( "WorkRAM", mem.workRAM, 0x9000, 0x0 );
 		if ( cart != nullptr ) {
 			mem_edit.DrawWindow( "ROM", cart->GetRawMemory(), cart->GetRawMemorySize(), 0x0 );
 		}

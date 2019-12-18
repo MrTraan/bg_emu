@@ -19,6 +19,7 @@ struct Ppu {
 	int		scanlineCounter = 456;
 	int		selectedPalette = 0;
 	byte	tileScanLine[ GB_SCREEN_WIDTH ];
+	byte	bgPriority[ GB_SCREEN_WIDTH * GB_SCREEN_HEIGHT ];
 
 	void AllocateBuffers( const Window & window );
 

@@ -48,14 +48,15 @@ struct Cpu {
 	int additionnalTicks;
 	int cpuTime;
 	int divider;
-	int speed; // Will be useful later for GBC
+	int speed;
 	int clockCounter;
 
 	bool interuptsEnabled = true;
 	bool interuptsOn = false;
 	bool isOnHalt = false;
+	bool speedSwitchRequested = false;
 
-	bool IsCGB() { return false; }
+	bool IsCGB = false;
 
 	void Reset( bool skipBios ) {
 		if ( skipBios ) {
@@ -77,6 +78,7 @@ struct Cpu {
 		interuptsEnabled = false;
 		interuptsOn = false;
 		isOnHalt = false;
+		speedSwitchRequested = false;
 		clockCounter = 0;
 		cpuTime = 0;
 	}
