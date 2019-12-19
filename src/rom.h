@@ -112,7 +112,7 @@ public:
 
 class MBC5 : public Cartridge {
 public:
-	byte	data[ 0x100000 ];
+	byte	data[ 0x200000 ];
 	uint16	romBank = 1;
 	bool	romBanking = false;
 

@@ -36,7 +36,7 @@ GBEMU_UNSUPPORTED_PLATFORM
 
 // GameBoy has a 4.19 MHz CPU
 constexpr int	GBEMU_CLOCK_SPEED = 4194304;
-constexpr int	APU_OVERCLOCKING = 1;
+constexpr int APU_OVERCLOCKING = 1;
 constexpr long	sample_rate = 44100;
 
 constexpr int GB_SCREEN_WIDTH = 160;

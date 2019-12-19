@@ -4,6 +4,8 @@
 #include "rom.h"
 #include "ppu.h"
 #include "sound/Gb_Apu.h"
+#include "sound/Multi_Buffer.h"
+#include "sound/Sound_Queue.h"
 
 #define TIMA 0xff05
 #define TMA	 0xff06
@@ -44,10 +46,12 @@ struct Memory {
 };
 
 struct Gameboy {
-	Cpu		cpu;
-	Memory	mem;
-	Ppu		ppu;
-	Gb_Apu	apu;
+	Cpu				cpu;
+	Memory			mem;
+	Ppu				ppu;
+	Gb_Apu			apu;
+	Stereo_Buffer	soundBuffer;
+	Sound_Queue		sound;
 
 	Cartridge * cart = nullptr;
 

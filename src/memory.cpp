@@ -236,9 +236,6 @@ byte Gameboy::ReadHighRam( uint16 addr ) {
 }
 
 void Gameboy::WriteHighRam( uint16 addr, byte value ) {
-	if (addr == 0xff69) {
-		printf("wot\n");
-	}
 	if ( addr >= 0xfa0 && addr < 0xfeff ) {
 		// You can't write here, sorry!
 		return;

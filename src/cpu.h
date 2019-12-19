@@ -71,8 +71,6 @@ struct Cpu {
 			A.Set(0x01);
 			F.Set(0xB0);
 		}
-		A.Set( 0x01 );
-		F.Set( 0xF0 );
 		BC.Set( 0x0000 );
 		DE.Set( 0xFF56 );
 		HL.Set( 0x000D );

@@ -43,7 +43,6 @@ byte Cpu::s_instructionsSize[ 0x100 ] = { 1, 3, 1, 1, 1, 1, 2, 1, 3, 1, 1, 1, 1,
 void Cpu::ExecuteInstruction( byte opcode, Gameboy * gb ) {
 	switch ( opcode ) {
 		case 0x00: {
-			break;
 			// NOP
 			break;
 		}
@@ -153,6 +152,7 @@ void Cpu::ExecuteInstruction( byte opcode, Gameboy * gb ) {
 				} else {
 					speed = 1;
 				}
+				gb->soundBuffer.clock_rate( 4194304 * APU_OVERCLOCKING * speed );
 			}
 			break;
 		}

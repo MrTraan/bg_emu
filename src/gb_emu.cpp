@@ -25,15 +25,9 @@ void DrawUI();
 
 static Window	window;
 static Gameboy	gb;
-Stereo_Buffer	soundBuffer;
-Sound_Queue		sound;
 
 static void reset( const char * cartridgePath ) {
 	gb.LoadCart( cartridgePath );
-
-	soundBuffer.clear();
-	sound.stop();
-	gbemu_assert( sound.start( sample_rate, 2 ) == nullptr );
 }
 
 void drop_callback( GLFWwindow * glWindow, int count, const char ** paths ) {
@@ -123,11 +117,11 @@ int main( int argc, char ** argv ) {
 	atexit( SDL_Quit );
 
 	gb.apu.treble_eq( -20.0 );		// lower values muffle it more
-	soundBuffer.bass_freq( 461 );	// higher values simulate smaller speaker
+	gb.soundBuffer.bass_freq( 461 );	// higher values simulate smaller speaker
 	// Set sample rate and check for out of memory error
-	gb.apu.output( soundBuffer.center(), soundBuffer.left(), soundBuffer.right() );
-	soundBuffer.clock_rate( 4194304 * APU_OVERCLOCKING );
-	gbemu_assert( soundBuffer.set_sample_rate( sample_rate ) == nullptr );
+	gb.apu.output( gb.soundBuffer.center(), gb.soundBuffer.left(), gb.soundBuffer.right() );
+	gb.soundBuffer.clock_rate( 4194304 * APU_OVERCLOCKING );
+	gbemu_assert( gb.soundBuffer.set_sample_rate( sample_rate ) == nullptr );
 
 	// Generate a few seconds of sound and play using SDL
 	bool show_demo_window = true;
@@ -158,11 +152,11 @@ int main( int argc, char ** argv ) {
 		static blip_sample_t	buf[ buf_size ];
 
 		bool stereo = gb.apu.end_frame( gb.cpu.cpuTime * APU_OVERCLOCKING );
-		soundBuffer.end_frame( gb.cpu.cpuTime * APU_OVERCLOCKING, stereo );
-		if ( soundBuffer.samples_avail() >= buf_size ) {
+		gb.soundBuffer.end_frame( gb.cpu.cpuTime * APU_OVERCLOCKING, stereo );
+		if ( gb.soundBuffer.samples_avail() >= buf_size ) {
 			// Play whatever samples are available
-			long count = soundBuffer.read_samples( buf, buf_size );
-			sound.write( buf, count );
+			long count = gb.soundBuffer.read_samples( buf, buf_size );
+			gb.sound.write( buf, count );
 		}
 
 		ImGui::Render();

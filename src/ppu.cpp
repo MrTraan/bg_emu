@@ -340,6 +340,8 @@ void Ppu::DebugDraw(Gameboy * gb) {
 	byte scrollX = gb->Read(0xff43);
 	ImGui::Text("Scroll X %d Scroll Y %d", scrollX, scrollY);
 	ImGui::Text("Scanline counter: %d", scanlineCounter);
+	byte currentLine = gb->Read(0xff44);
+	ImGui::Text("Current line: %d", currentLine);
 
 	ImGui::Checkbox( "Draw background texture", &drawBackgroundTexture );
 	if (drawBackgroundTexture) {

@@ -29,15 +29,22 @@ void Gameboy::RunOneFrame() {
 }
 
 void Gameboy::Reset() {
+	if ( cart == nullptr ) {
+		return;
+	}
 	totalInstructions = 0;
 	ResetMemory();
-	apu.reset();
 	if ( cart->mode == DMG || (cart->mode == CGB_DMG && Cartridge::forceDMGMode )) {
 		cpu.Reset( skipBios, false);
 	} else {
 		cpu.Reset( skipBios, true);
 	}
 	ppu.Reset();
+
+	apu.reset();
+	soundBuffer.clear();
+	sound.stop();
+	gbemu_assert( sound.start( sample_rate, 2 ) == nullptr );
 }
 
 void Gameboy::LoadCart( const char * path ) {
@@ -233,7 +240,7 @@ void Gameboy::DebugDraw() {
 		int remainingLines = 100; // TMP: it is really slow to display a huge list with ImGUI, this is temporary to reduce pressure
 		bool pcFound = false;
 		int PC = cart->DebugResolvePC(cpu.PC);
-		int startIndex = 0;
+		size_t startIndex = 0;
 
 		//binary search our address
 		auto it = std::lower_bound(cart->sourceCodeAddresses.begin(), cart->sourceCodeAddresses.end(), PC);
@@ -241,10 +248,10 @@ void Gameboy::DebugDraw() {
 			startIndex = 0;
 		} else {
 			std::size_t index = std::distance(cart->sourceCodeAddresses.begin(), it);
-			startIndex = MAX(index - 100, 0);
+			startIndex = MAX((int64)index - 100, 0);
 		}   
 
-		for ( int i = startIndex; i < startIndex + 200 && i < cart->sourceCodeLines.size(); i++) {
+		for ( size_t i = startIndex; i < startIndex + 200 && i < cart->sourceCodeLines.size(); i++) {
 			const std::string & line = cart->sourceCodeLines[i];
 			bool colored = false;
 			if ( cart->sourceCodeAddresses[i] == PC ) {
