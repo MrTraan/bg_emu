@@ -3,6 +3,7 @@
 
 #include "Wave_Writer.h"
 
+#include "gb_emu.h"
 #include <assert.h>
 #include <stdlib.h>
 
@@ -121,21 +122,21 @@ Wave_Writer::~Wave_Writer()
 	long bps = rate * frame_size;
 	unsigned char header [header_size] = {
 		'R','I','F','F',
-		rs,rs>>8,           // length of rest of file
-		rs>>16,rs>>24,
+		(byte)rs,(byte)(rs>>8),           // length of rest of file
+		(byte)(rs>>16),(byte)(rs>>24),
 		'W','A','V','E',
 		'f','m','t',' ',
 		0x10,0,0,0,         // size of fmt chunk
 		1,0,                // uncompressed format
-		chan_count,0,       // channel count
-		rate,rate >> 8,     // sample rate
-		rate>>16,rate>>24,
-		bps,bps>>8,         // bytes per second
-		bps>>16,bps>>24,
-		frame_size,0,       // bytes per sample frame
+		(byte)chan_count,0,       // channel count
+		(byte)rate,(byte)(rate >> 8),     // sample rate
+		(byte)(rate>>16),(byte)(rate>>24),
+		(byte)bps,(byte)(bps>>8),         // bytes per second
+		(byte)(bps>>16),(byte)(bps>>24),
+		(byte)frame_size,0,       // bytes per sample frame
 		16,0,               // bits per sample
 		'd','a','t','a',
-		ds,ds>>8,ds>>16,ds>>24// size of sample data
+		(byte)ds,(byte)(ds>>8),(byte)(ds>>16),(byte)(ds>>24)// size of sample data
 		// ...              // sample data
 	};
 	

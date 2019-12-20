@@ -1,7 +1,6 @@
 ﻿#include <stdio.h>
 #include <thread>
 #include <chrono>
-#include <filesystem>
 #include <iostream>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -10,6 +9,14 @@
 #include <imgui/imgui_impl_opengl3.h>
 #include <imgui/imgui_memory_editor.h>
 #include "SDL.h"
+#if defined (_WIN32)
+#include <filesystem>
+#elif defined( __linux ) || defined( __APPLE__ )
+#include <sys/types.h>
+#include <dirent.h>
+#else
+GBEMU_UNSUPPORTED_PLATFORM
+#endif
 
 #include "gb_emu.h"
 #include "gameboy.h"
@@ -46,6 +53,7 @@ void windowResizeCallback( GLFWwindow * glWindow, int width, int height ) {
 std::vector< std::string > romFSPaths;
 
 void parseRomPath( const char * path ) {
+#if defined ( _WIN32 )
 	for ( const auto & entry : std::filesystem::directory_iterator( path ) ) {
 		if ( entry.is_directory() ) {
 			parseRomPath( entry.path().string().c_str() );
@@ -57,6 +65,27 @@ void parseRomPath( const char * path ) {
 			romFSPaths.push_back( str );
 		}
 	}
+#elif defined( __linux ) || defined( __APPLE__ )
+	DIR * dir = opendir( path );
+	if ( dir == nullptr ) {
+		return;
+	}
+
+	dirent * dirFiles;
+	while ( ( dirFiles = readdir( dir) ) != nullptr ) {
+		if ( dirFiles->d_type == DT_DIR ) {
+			parseRomPath( dirFiles->d_name );
+		} else {
+			std::string str = dirFiles->d_name;
+			if ( str.find( FS_BASE_PATH "/" ) == 0 ) {
+				str.erase( 0, strlen( FS_BASE_PATH "/" ) );
+			}
+			romFSPaths.push_back( str );
+		}
+	}
+#else
+GBEMU_UNSUPPORTED_PLATFORM
+#endif
 }
 
 #if defined( _WIN32 )

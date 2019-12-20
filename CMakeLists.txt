@@ -10,8 +10,8 @@ if (WIN32)
 		set(SDL2_DIR "./lib/SDL2-2.0.10")
 endif()
 
-add_compile_definitions(FS_BASE_PATH="${CMAKE_SOURCE_DIR}/resources")
-add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
+add_definitions(-DFS_BASE_PATH="${CMAKE_SOURCE_DIR}/resources")
+add_definitions(-D_CRT_SECURE_NO_WARNINGS)
 
 set (CMAKE_CXX_STANDARD 17)
 
