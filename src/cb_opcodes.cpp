@@ -24,7 +24,7 @@ static int CBopcodeCyclesCost[ 0x100 ] = {
 
 byte Rlc( Cpu * cpu, byte val ) {
 	byte carry = val >> 7;
-	byte rot = ( val << 1 ) & 0xff | carry;
+	byte rot = ( ( val << 1 ) & 0xff ) | carry;
 
 	cpu->SetZ( rot == 0 );
 	cpu->SetN( false );
@@ -35,7 +35,7 @@ byte Rlc( Cpu * cpu, byte val ) {
 
 byte Rl( Cpu * cpu, byte val ) {
 	byte carry = val >> 7;
-	byte rot = ( val << 1 ) & 0xff | ( cpu->GetC() ? 1 : 0 );
+	byte rot = (( val << 1 ) & 0xff ) | ( cpu->GetC() ? 1 : 0 );
 
 	cpu->SetZ( rot == 0 );
 	cpu->SetN( false );

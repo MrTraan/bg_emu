@@ -20,13 +20,7 @@ set(OpenGL_GL_PREFERENCE GLVND)
 find_package(OpenGL REQUIRED)
 find_package(SDL2 REQUIRED)
 
-set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
-set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
-set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
-
 include_directories("./inc" "./lib" "./src" ${SDL2_INCLUDE_DIRS})
-
-add_subdirectory(./lib/glfw)
 
 add_definitions(-DIMGUI_IMPL_OPENGL_LOADER_GLAD)
 
@@ -49,8 +43,6 @@ WIN32
 "./src/rom.cpp"
 "./src/simple_texture.h"
 "./src/gui/window.h"
-"./src/gui/keyboard.h"
-"./src/gui/keyboard.cpp"
 "./src/gui/textured_rectangle.h"
 "./src/gui/textured_rectangle.cpp"
 
@@ -76,9 +68,9 @@ WIN32
 "./src/imgui/imgui_widgets.cpp"
 "./src/imgui/imgui_demo.cpp"
 "./src/imgui/imgui_draw.cpp"
-"./src/imgui/imgui_impl_glfw.cpp"
+"./src/imgui/imgui_impl_sdl.cpp"
 "./src/imgui/imgui_impl_opengl3.cpp"
 )
 
 
-target_link_libraries(gb_emu glfw ${SDL2_LIBRARIES})
+target_link_libraries(gb_emu ${SDL2_LIBRARIES})

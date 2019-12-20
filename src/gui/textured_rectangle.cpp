@@ -1,5 +1,4 @@
 #include <glad/glad.h>
-#include <GLFW/glfw3.h>
 #include <stdio.h>
 #include "textured_rectangle.h"
 #include "window.h"

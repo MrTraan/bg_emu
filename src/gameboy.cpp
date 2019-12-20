@@ -260,9 +260,9 @@ void Gameboy::DebugDraw() {
 				ImGui::SetScrollHereY( 0.5f ); // 0.0f:top, 0.5f:center, 1.0f:bottom
 			}
 			if ( colored ) {
-				ImGui::TextColored( ImVec4( 1, 1, 0, 1 ), line.c_str() );
+				ImGui::TextColored( ImVec4( 1, 1, 0, 1 ), "%s", line.c_str() );
 			} else {
-				ImGui::Text( line.c_str() );
+				ImGui::Text( "%s", line.c_str() );
 			}
 			if (pcFound && remainingLines-- <= 0) {
 				break;

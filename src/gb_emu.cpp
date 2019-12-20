@@ -3,9 +3,8 @@
 #include <chrono>
 #include <iostream>
 #include <glad/glad.h>
-#include <GLFW/glfw3.h>
 #include <imgui/imgui.h>
-#include <imgui/imgui_impl_glfw.h>
+#include <imgui/imgui_impl_sdl.h>
 #include <imgui/imgui_impl_opengl3.h>
 #include <imgui/imgui_memory_editor.h>
 #include "SDL.h"
@@ -23,7 +22,6 @@ GBEMU_UNSUPPORTED_PLATFORM
 #include "cpu.h"
 #include "rom.h"
 #include "gui/window.h"
-#include "gui/keyboard.h"
 #include "sound/Gb_Apu.h"
 #include "sound/Multi_Buffer.h"
 #include "sound/Sound_Queue.h"
@@ -32,23 +30,6 @@ void DrawUI();
 
 static Window	window;
 static Gameboy	gb;
-
-static void reset( const char * cartridgePath ) {
-	gb.LoadCart( cartridgePath );
-}
-
-void drop_callback( GLFWwindow * glWindow, int count, const char ** paths ) {
-	if ( count == 1 ) {
-		reset( paths[ 0 ] );
-	}
-}
-
-void windowResizeCallback( GLFWwindow * glWindow, int width, int height ) {
-	window.Width = width;
-	window.Height = height;
-	gb.ppu.frontBuffer.RefreshSize( window );
-	gb.ppu.backBuffer.RefreshSize( window );
-}
 
 std::vector< std::string > romFSPaths;
 
@@ -73,16 +54,21 @@ void parseRomPath( const char * path ) {
 
 	dirent * dirFiles;
 	while ( ( dirFiles = readdir( dir) ) != nullptr ) {
+		if (strcmp(dirFiles->d_name, ".") == 0 || strcmp(dirFiles->d_name, "..") == 0)
+                continue;
 		if ( dirFiles->d_type == DT_DIR ) {
 			parseRomPath( dirFiles->d_name );
 		} else {
-			std::string str = dirFiles->d_name;
+			std::string str = path;
+			str += "/";
+			str += dirFiles->d_name;
 			if ( str.find( FS_BASE_PATH "/" ) == 0 ) {
 				str.erase( 0, strlen( FS_BASE_PATH "/" ) );
 			}
 			romFSPaths.push_back( str );
 		}
 	}
+	closedir( dir );
 #else
 GBEMU_UNSUPPORTED_PLATFORM
 #endif
@@ -106,10 +92,14 @@ int main( int argc, char ** argv ) {
 		// romPath = "../../../roms/cpu_instrs.gb";
 		romPath = FS_BASE_PATH "/roms/Pokemon - Jaune.gbc";
 	}
-	reset( romPath );
+	gb.LoadCart( romPath );
 	if ( gb.cart == nullptr ) {
 		return 1;
 	}
+	
+	if ( SDL_Init( SDL_INIT_AUDIO | SDL_INIT_VIDEO ) < 0 )
+		return EXIT_FAILURE;
+	atexit( SDL_Quit );
 
 	parseRomPath( FS_BASE_PATH "/roms" );
 
@@ -118,18 +108,12 @@ int main( int argc, char ** argv ) {
 	// Setup imgui
 	ImGui::CreateContext();
 	ImGuiIO & io = ImGui::GetIO();
-	ImGui_ImplGlfw_InitForOpenGL( window.GetGlfwWindow(), true );
+	ImGui_ImplSDL2_InitForOpenGL( window.glWindow, window.glContext );
 	ImGui_ImplOpenGL3_Init( "#version 150" );
 	io.Fonts->AddFontFromFileTTF( FS_BASE_PATH "/fonts/consolas.ttf", 13 );
 
-	Keyboard::s_gb = &gb;
-	Keyboard::Init( window );
-
-	int major, minor, version;
-	glfwGetVersion( &major, &minor, &version );
 	const GLubyte * vendor = glGetString( GL_VENDOR );
 	printf( "Vendor name: %s\n", vendor );
-	printf( "Glfw version: %d.%d.%d\n", major, minor, version );
 	printf( "OpenGL version: %s\n", glGetString( GL_VERSION ) );
 	glEnable( GL_MULTISAMPLE );
 	glEnable( GL_DEBUG_OUTPUT );
@@ -138,12 +122,6 @@ int main( int argc, char ** argv ) {
 #endif
 	glEnable( GL_CULL_FACE );
 	glCullFace( GL_BACK );
-	glfwSetDropCallback( window.GetGlfwWindow(), drop_callback );
-	glfwSetWindowSizeCallback( window.GetGlfwWindow(), windowResizeCallback );
-
-	if ( SDL_Init( SDL_INIT_AUDIO ) < 0 )
-		return EXIT_FAILURE;
-	atexit( SDL_Quit );
 
 	gb.apu.treble_eq( -20.0 );		// lower values muffle it more
 	gb.soundBuffer.bass_freq( 461 );	// higher values simulate smaller speaker
@@ -158,13 +136,10 @@ int main( int argc, char ** argv ) {
 	gb.ppu.AllocateBuffers( window );
 
 	while ( !window.ShouldClose() ) {
-		double startTime = glfwGetTime();
-
 		window.Clear();
-		window.PollEvents();
-		window.ProcessInput();
+		window.PollEvents( &gb );
 		ImGui_ImplOpenGL3_NewFrame();
-		ImGui_ImplGlfw_NewFrame();
+		ImGui_ImplSDL2_NewFrame( window.glWindow );
 		ImGui::NewFrame();
 
 		if ( show_demo_window ) {
@@ -191,11 +166,15 @@ int main( int argc, char ** argv ) {
 		ImGui::Render();
 		ImGui_ImplOpenGL3_RenderDrawData( ImGui::GetDrawData() );
 
-		window.SwapBuffers();
+		glViewport(0, 0, (int)io.DisplaySize.x, (int)io.DisplaySize.y);
+        glClearColor(0, 0, 0, 1);
+        glClear(GL_COLOR_BUFFER_BIT);
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+        SDL_GL_SwapWindow(window.glWindow);
 	}
 
 	ImGui_ImplOpenGL3_Shutdown();
-	ImGui_ImplGlfw_Shutdown();
+	ImGui_ImplSDL2_Shutdown();
 	ImGui::DestroyContext();
 
 	gb.ppu.DestroyBuffers();
@@ -213,7 +192,7 @@ void DrawUI() {
 					if ( ImGui::MenuItem( str.c_str() ) ) {
 						std::string strCpy = FS_BASE_PATH "/";
 						strCpy += str;
-						reset( strCpy.c_str() );
+						gb.LoadCart( strCpy.c_str() );
 					}
 				}
 				ImGui::EndMenu();
@@ -251,6 +230,16 @@ void DrawUI() {
 		ImGui::Text( "%.1f FPS", framerate );
 		ImGui::EndMainMenuBar();
 	}
+
+	SimpleTexture & texture = gb.ppu.drawingBuffer->texture;
+	ImGui::Begin( "Main Screen" );
+	ImGui::BeginGroup();
+	ImGui::BeginChild( ImGui::GetID( "MAIN SCREEN TEXTURE" ) );
+	ImGui::Image((void*)(texture.textureHandler), ImVec2((float)texture.width * 4, (float)texture.height * 4), ImVec2(0,0), ImVec2(1,1), ImVec4(1.0f,1.0f,1.0f,1.0f), ImVec4(1.0f,1.0f,1.0f,0.5f));
+	ImGui::EndChild();
+	ImGui::EndGroup();
+	ImGui::End();
+
 	if ( showDebugWindow ) {
 		gb.DebugDraw();
 	}

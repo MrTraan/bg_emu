@@ -61,6 +61,8 @@ public:
 	virtual int		GetRawMemorySize() = 0;
 	virtual int		DebugResolvePC(uint16 PC) = 0;
 
+	virtual ~Cartridge() {}
+
 	static bool forceDMGMode;
 	virtual void DebugDraw();
 

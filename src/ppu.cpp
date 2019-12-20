@@ -4,7 +4,6 @@
 #include "gameboy.h"
 #include <imgui/imgui.h>
 #include <glad/glad.h>
-#include <GLFW/glfw3.h>
 #include "gui/window.h"
 
 constexpr int lcdMode1Bounds = 144;
