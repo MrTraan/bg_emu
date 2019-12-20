@@ -6,6 +6,7 @@
 
 struct Gameboy;
 struct Window;
+struct CGBPalette;
 
 struct Ppu {
 	TexturedRectangle	frontBuffer;
@@ -46,7 +47,7 @@ struct Ppu {
 	void DrawTiles( int line, byte scanline, Gameboy * gb );
 	void DrawSprites( int line, byte scanline, Gameboy * gb );
 
-	void PutPixel( byte x, byte y, byte tileAttr, byte colorIndex, byte palette, bool priority, Gameboy * gb );
+	void PutPixel( byte x, byte y, byte tileAttr, byte colorIndex, byte palette, bool priority, Gameboy * gb, const CGBPalette & cgbPalette );
 
 	void			DebugDraw( Gameboy * gb );
 	void			DrawFullBackgroundToTexture( SimpleTexture & texture, int width, int height, Gameboy * gb );

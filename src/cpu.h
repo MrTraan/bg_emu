@@ -9,11 +9,8 @@ struct Register8 {
 
 	byte Get() { return value; }
 	void Set( uint8 newVal ) {
-		value = newVal;
-		ApplyMask();
+		value = newVal & mask;
 	}
-
-	void ApplyMask() { value &= mask; }
 
 private:
 	byte value = 0x0;

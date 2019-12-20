@@ -33,22 +33,18 @@ Cartridge * Cartridge::LoadFromFile( const char * path ) {
 	Cartridge * cart = nullptr;
 	if ( ROMIsBasicROM( cartType ) ) {
 		ROM * rom = new ROM();
-		gbemu_assert( sizeof( rom->data ) >= size );
-		memset( rom->data, 0, sizeof( rom->data ) );
-		memcpy( rom->data, cartData, size );
+		rom->data = cartData;
 		cart = rom;
 	} else if ( ROMIsMBC1( cartType ) ) {
 		MBC1 * rom = new MBC1();
-		gbemu_assert( sizeof( rom->data ) >= size );
-		memset( rom->data, 0, sizeof( rom->data ) );
-		memcpy( rom->data, cartData, size );
+		cart = rom;
+		rom->ramEnabled = ROMHasRAM( cartType );
+	} else if ( ROMIsMBC3( cartType ) ) {
+		MBC3 * rom = new MBC3();
 		cart = rom;
 		rom->ramEnabled = ROMHasRAM( cartType );
 	} else if ( ROMIsMBC5( cartType ) ) {
 		MBC5 * rom = new MBC5();
-		gbemu_assert( sizeof( rom->data ) >= size );
-		memset( rom->data, 0, sizeof( rom->data ) );
-		memcpy( rom->data, cartData, size );
 		cart = rom;
 		rom->ramEnabled = ROMHasRAM( cartType );
 	} else {
@@ -56,6 +52,7 @@ Cartridge * Cartridge::LoadFromFile( const char * path ) {
 	}
 
 	if ( cart != nullptr ) {
+		cart->data = cartData;
 		cart->rawMemorySize = size;
 		cart->type = cartType;
 		if ( cartData[0x143] == 0x80 ) {
@@ -78,7 +75,6 @@ Cartridge * Cartridge::LoadFromFile( const char * path ) {
 		cart->romName[ 0xE ] = 0;
 		//cart->GenerateSourceCode();
 	}
-	delete[] cartData;
 	return cart;
 }
 
@@ -183,6 +179,74 @@ void MBC1::Write( uint16 addr, byte val ) {
 void MBC1::WriteRAM( uint16 addr, byte val ) {
 	if ( ramEnabled ) {
 		ram[ ramBank * 0x2000 + addr - 0xa000 ] = val;
+	}
+}
+
+byte MBC3::Read( uint16 addr ) {
+	if ( addr < 0x4000 ) {
+		return data[ addr ];
+	} else if ( addr < 0x8000 ) {
+		return data[ addr - 0x4000 + romBank * 0x4000 ];
+	} else {
+		if ( ramBank >= 0x4 ) {
+			if ( latched ) {
+				return latchedRtc[ ramBank ];
+			}
+			return rtc[ ramBank ];
+		}
+		return ram[ ramBank * 0x2000 + addr - 0xa000 ];
+	}
+}
+
+int MBC3::DebugResolvePC( uint16 PC ) {
+	if ( PC < 0x4000 ) {
+		return PC;
+	} else if ( PC < 0x8000 ) {
+		return PC - 0x4000 + romBank * 0x4000;
+	} else {
+		return 0;
+	}
+}
+
+void MBC3::Write( uint16 addr, byte val ) {
+	switch ( ( addr & 0xf000 ) >> 12 ) { // Switch on 4th byte
+		case 0x0:
+		case 0x1:
+			ramEnabled = ( val & 0xa ) != 0;
+			break;
+
+		case 0x2:
+		case 0x3:
+			// Sets rom bank number
+			romBank = val & 0x7f;
+			if ( romBank == 0 ) {
+				romBank = 1;
+			}
+			break;
+
+		case 0x4:
+		case 0x5:
+			ramBank = val;
+			break;
+
+		case 0x6:
+		case 0x7:
+			if ( val == 0x1 ) {
+				latched = false;
+			} else if ( val == 0x0 ) {
+				latched = true;
+				memcpy( rtc, latchedRtc, sizeof(rtc) );
+			}
+	}
+}
+
+void MBC3::WriteRAM( uint16 addr, byte val ) {
+	if ( ramEnabled ) {
+		if ( ramBank >= 0x4 ) {
+			rtc[ ramBank ] = val;
+		} else {
+			ram[ ramBank * 0x2000 + addr - 0xa000 ] = val;
+		}
 	}
 }
 

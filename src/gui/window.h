@@ -120,7 +120,7 @@ public:
 				gb->ppu.frontBuffer.RefreshSize( *this );
 				gb->ppu.backBuffer.RefreshSize( *this );
 			}
-			if (event.type == SDL_KEYUP)
+			if (event.type == SDL_KEYDOWN)
 			{
 				auto key = event.key.keysym.sym;
 				if (key == eKey::KEY_A)
@@ -164,7 +164,7 @@ public:
 					gb->RaiseInterupt(4);
 				}
 			}
-			if (event.type == SDL_KEYDOWN)
+			if (event.type == SDL_KEYUP)
 			{
 				auto key = event.key.keysym.sym;
 				if (key == eKey::KEY_A)

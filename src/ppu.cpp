@@ -150,12 +150,12 @@ void Ppu::DrawScanLine(int scanline, Gameboy * gb) {
 	}
 }
 
-void Ppu::PutPixel(byte x, byte y, byte tileAttr, byte colorIndex, byte palette, bool priority, Gameboy * gb) {
+void Ppu::PutPixel(byte x, byte y, byte tileAttr, byte colorIndex, byte palette, bool priority, Gameboy * gb, const CGBPalette & CGBpalette) {
 	Pixel pixel;
 	if (gb->cpu.IsCGB) {
 		byte cgbPalette = tileAttr & 0x7;
 		byte index = cgbPalette * 8 + colorIndex * 2;
-		uint16 color = gb->mem.bgPalette.palette[index] | gb->mem.bgPalette.palette[index + 1] << 8;
+		uint16 color = CGBpalette.palette[index] | (CGBpalette.palette[index + 1] << 8);
 		pixel.R = cgbColorsValue[ color & 0x1f ];
 		pixel.G = cgbColorsValue[ ( color >> 5 ) & 0x1f ];
 		pixel.B = cgbColorsValue[ ( color >> 10 ) & 0x1f ];
@@ -253,7 +253,7 @@ void Ppu::DrawTiles(int scanline, byte control, Gameboy * gb) {
 		byte colorBit = (int8)((xPos % 8) - 7) * -1;
 		byte colorIndex = (BIT_VALUE(tileData2, colorBit) << 1) | BIT_VALUE(tileData1, colorBit);
 		// Draw if sprite has priority of if no pixel has been drawn there
-		PutPixel(x, scanline, tileAttr, colorIndex, palette, true, gb);
+		PutPixel(x, scanline, tileAttr, colorIndex, palette, true, gb, gb->mem.bgPalette);
 		tileScanLine[x] = colorIndex;
 		if (gb->cpu.IsCGB) {
 			bgPriority[x + scanline * GB_SCREEN_WIDTH ] = priority ? 1 : 0;
@@ -321,7 +321,7 @@ void Ppu::DrawSprites(int scanline, byte control, Gameboy * gb) {
 				continue;
 			}
 
-			PutPixel((byte)pixel, (byte)scanline, spriteAttr, colorIndex, BIT_IS_SET(spriteAttr, 4) ? palette2 : palette1, priority, gb);
+			PutPixel((byte)pixel, (byte)scanline, spriteAttr, colorIndex, BIT_IS_SET(spriteAttr, 4) ? palette2 : palette1, priority, gb, gb->mem.spritePalette);
 
 			minX[pixel] = xPos + 100;
 		}

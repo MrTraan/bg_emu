@@ -57,11 +57,13 @@ public:
 	virtual byte	Read( uint16 addr ) = 0;
 	virtual void	Write( uint16 addr, byte val ) = 0;
 	virtual void	WriteRAM( uint16 addr, byte val ) = 0;
-	virtual byte *	GetRawMemory() = 0;
-	virtual int		GetRawMemorySize() = 0;
 	virtual int		DebugResolvePC(uint16 PC) = 0;
+	byte *			GetRawMemory() { return data; }
+	int				GetRawMemorySize() { return rawMemorySize; };
 
-	virtual ~Cartridge() {}
+	virtual ~Cartridge() {
+		delete [] data;
+	}
 
 	static bool forceDMGMode;
 	virtual void DebugDraw();
@@ -70,6 +72,7 @@ public:
 
 	ROMType type;
 	ColorMode mode;
+	byte * data = nullptr;
 	char romName[ 0xF ];
 	char romPath[ 0x200 ];
 	int rawMemorySize = 0;
@@ -82,20 +85,16 @@ public:
 
 class ROM : public Cartridge {
 public:
-	byte data[ 0x8000 ];
-
 	virtual byte Read( uint16 addr ) override { return data[ addr ]; }
 	virtual int DebugResolvePC(uint16 PC) override { return PC; }
 	virtual void Write( uint16 addr, byte val ) override {}
 	virtual void WriteRAM( uint16 addr, byte val ) override {}
 
 	virtual byte *	GetRawMemory() { return data; }
-	virtual int		GetRawMemorySize() { return 0x8000; }
 };
 
 class MBC1 : public Cartridge {
 public:
-	byte	data[ 0x80000 ];
 	uint16	romBank = 1;
 	bool	romBanking = false;
 
@@ -107,16 +106,30 @@ public:
 	virtual void Write( uint16 addr, byte val ) override;
 	virtual void WriteRAM( uint16 addr, byte val ) override;
 	virtual int DebugResolvePC(uint16 PC) override;
+};
 
-	virtual byte *	GetRawMemory() { return data; }
-	virtual int		GetRawMemorySize() { return 0x80000; }
+class MBC3 : public Cartridge {
+public:
+	uint16	romBank = 1;
+
+	byte	ram[ 0x8000 ];
+	uint16	ramBank = 0;
+	bool	ramEnabled = true;
+
+	byte 	rtc[0x10];
+	byte 	latchedRtc[0x10];
+	bool	latched;
+
+	virtual byte Read( uint16 addr ) override;
+	virtual void Write( uint16 addr, byte val ) override;
+	virtual void WriteRAM( uint16 addr, byte val ) override;
+	virtual int DebugResolvePC(uint16 PC) override;
 };
 
 class MBC5 : public Cartridge {
 public:
-	byte	data[ 0x200000 ];
 	uint16	romBank = 1;
-	bool	romBanking = false;
+	bool	romBanking = true;
 
 	byte	ram[ 0x20000 ];
 	uint16	ramBank = 0;
@@ -126,9 +139,6 @@ public:
 	virtual void Write( uint16 addr, byte val ) override;
 	virtual void WriteRAM( uint16 addr, byte val ) override;
 	virtual int DebugResolvePC(uint16 PC) override;
-
-	virtual byte *	GetRawMemory() { return data; }
-	virtual int		GetRawMemorySize() { return 0x100000; }
 
 	virtual void DebugDraw() override;
 };

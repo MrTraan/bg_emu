@@ -21,55 +21,6 @@ void Gameboy::ResetMemory() {
 		mem.bgPalette.palette[ i ] = 0xff;
 		mem.spritePalette.palette[ i ] = 0xff;
 	}
-	mem.bgPalette.palette[0] = 0x7fff;
-	mem.bgPalette.palette[1] = 0x027f;
-	mem.bgPalette.palette[2] = 0x0273;
-	mem.bgPalette.palette[3] = 0x0c63;
-	mem.bgPalette.palette[4] = 0x7fff;
-	mem.bgPalette.palette[5] = 0x023f;
-	mem.bgPalette.palette[6] = 0x001f;
-	mem.bgPalette.palette[7] = 0x0c63;
-	mem.bgPalette.palette[8] = 0x7fff;
-	mem.bgPalette.palette[9] = 0x03f3;
-	mem.bgPalette.palette[10] = 0x7eeb;
-	mem.bgPalette.palette[11] = 0x0c63;
-	mem.bgPalette.palette[12] = 0x7fff;
-	mem.bgPalette.palette[13] = 0x7e50;
-	mem.bgPalette.palette[14] = 0x6420;
-	mem.bgPalette.palette[15] = 0x0c63;
-
-	// Set the default values
-	//mem.highRAM[ 0x04 ] = 0x68;
-	//mem.highRAM[ 0x07 ] = 0xf8;
-	//mem.highRAM[ 0x0f ] = 0xe1;
-	//mem.highRAM[ 0x10 ] = 0x80;
-	//mem.highRAM[ 0x11 ] = 0x80;
-	//mem.highRAM[ 0x12 ] = 0xf3;
-	//mem.highRAM[ 0x13 ] = 0xc1;
-	//mem.highRAM[ 0x14 ] = 0xbf;
-	//mem.highRAM[ 0x16 ] = 0x3f;
-	//mem.highRAM[ 0x19 ] = 0xbf;
-	//mem.highRAM[ 0x1a ] = 0x7f;
-	//mem.highRAM[ 0x1b ] = 0xff;
-	//mem.highRAM[ 0x1c ] = 0x9f;
-	//mem.highRAM[ 0x1e ] = 0xbf;
-	//mem.highRAM[ 0x20 ] = 0xff;
-	//mem.highRAM[ 0x23 ] = 0xbf;
-	//mem.highRAM[ 0x24 ] = 0x77;
-	//mem.highRAM[ 0x25 ] = 0xf3;
-	//mem.highRAM[ 0x26 ] = 0x80;
-	//mem.highRAM[ 0x40 ] = 0x91;
-	//mem.highRAM[ 0x41 ] = 0x81;
-	//mem.highRAM[ 0x44 ] = 0x99;
-	//mem.highRAM[ 0x47 ] = 0xfc;
-	//mem.highRAM[ 0x48 ] = 0xff;
-	//mem.highRAM[ 0x49 ] = 0xff;
-	//if ( skipBios )
-	//	mem.highRAM[ 0x50 ] = 0x01;
-	//mem.highRAM[ 0xfa ] = 0x39;
-	//mem.highRAM[ 0xfb ] = 0x01;
-	//mem.highRAM[ 0xfc ] = 0x2e;
-
 	mem.highRAM[0x04] = 0x1E;
 	mem.highRAM[0x05] = 0x00;
 	mem.highRAM[0x06] = 0x00;
@@ -375,8 +326,8 @@ void Gameboy::HDMATransfer() {
 }
 
 void Gameboy::PerformDMATransfer( uint16 length ) {
-	uint16 source = (uint16)mem.highRAM[ 0x51 ] << 8 | (uint16)mem.highRAM[ 0x52 ] & 0xfff0;
-	uint16 dest = (uint16)mem.highRAM[ 0x53 ] << 8 | (uint16)mem.highRAM[ 0x54 ] & 0x1ff0;
+	uint16 source = (uint16)mem.highRAM[ 0x51 ] << 8 | ((uint16)mem.highRAM[ 0x52 ] & 0xfff0);
+	uint16 dest = (uint16)mem.highRAM[ 0x53 ] << 8 | ((uint16)mem.highRAM[ 0x54 ] & 0x1ff0);
 	dest += 0x8000;
 
 	for ( uint16 i = 0; i < length; i++ ) {
