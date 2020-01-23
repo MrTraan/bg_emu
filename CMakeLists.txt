@@ -42,6 +42,8 @@ WIN32
 "./src/rom.h"
 "./src/rom.cpp"
 "./src/simple_texture.h"
+"./src/profiler.h"
+"./src/profiler.cpp"
 "./src/gui/window.h"
 "./src/gui/textured_rectangle.h"
 "./src/gui/textured_rectangle.cpp"

@@ -4,10 +4,12 @@
 #include "gameboy.h"
 #include <imgui/imgui.h>
 #include <imgui/imgui_memory_editor.h>
+#include "profiler.h"
 
 static MemoryEditor mem_edit;
 
 void Gameboy::RunOneFrame() {
+	GB_PROFILE(Gameboy::RunOneFrame);
 	cpu.cpuTime = 0;
 	constexpr int maxClocksThisFrame = GBEMU_CLOCK_SPEED / 60;
 

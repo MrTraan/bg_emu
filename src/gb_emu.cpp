@@ -25,6 +25,7 @@ GBEMU_UNSUPPORTED_PLATFORM
 #include "sound/Gb_Apu.h"
 #include "sound/Multi_Buffer.h"
 #include "sound/Sound_Queue.h"
+#include "profiler.h"
 
 void DrawUI();
 
@@ -74,16 +75,6 @@ GBEMU_UNSUPPORTED_PLATFORM
 #endif
 }
 
-#if defined( _WIN32 )
-void GLAPIENTRY MessageCallback( GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar * message, const void * userParam ) {
-	if ( severity == GL_DEBUG_SEVERITY_NOTIFICATION )
-		return;
-	char buffer[ 1000 ];
-	snprintf( buffer, 1000, "GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s\n", ( type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : "" ), type, severity, message );
-	OutputDebugString( buffer );
-}
-#endif
-
 int main( int argc, char ** argv ) {
 	const char * romPath;
 	if ( argc == 2 ) {
@@ -117,9 +108,6 @@ int main( int argc, char ** argv ) {
 	printf( "OpenGL version: %s\n", glGetString( GL_VERSION ) );
 	glEnable( GL_MULTISAMPLE );
 	glEnable( GL_DEBUG_OUTPUT );
-#if defined( _WIN32 )
-	glDebugMessageCallback( MessageCallback, 0 );
-#endif
 	glEnable( GL_CULL_FACE );
 	glCullFace( GL_BACK );
 
@@ -142,35 +130,47 @@ int main( int argc, char ** argv ) {
 		ImGui_ImplSDL2_NewFrame( window.glWindow );
 		ImGui::NewFrame();
 
+		Profiler::GrabInstance()->ImplNewFrame();
+
 		if ( show_demo_window ) {
 			ImGui::ShowDemoWindow( &show_demo_window );
 		}
-
-		gb.ppu.drawingBuffer->Draw();
 
 		DrawUI();
 
 		gb.RunOneFrame();
 
-		int const				buf_size = 4096;
-		static blip_sample_t	buf[ buf_size ];
+		{
+			GB_PROFILE(Audio);
+			int const				buf_size = 4096;
+			static blip_sample_t	buf[ buf_size ];
 
-		bool stereo = gb.apu.end_frame( gb.cpu.cpuTime * APU_OVERCLOCKING );
-		gb.soundBuffer.end_frame( gb.cpu.cpuTime * APU_OVERCLOCKING, stereo );
-		if ( gb.soundBuffer.samples_avail() >= buf_size ) {
-			// Play whatever samples are available
-			long count = gb.soundBuffer.read_samples( buf, buf_size );
-			gb.sound.write( buf, count );
+			bool stereo = gb.apu.end_frame( gb.cpu.cpuTime * APU_OVERCLOCKING );
+			gb.soundBuffer.end_frame( gb.cpu.cpuTime * APU_OVERCLOCKING, stereo );
+			if ( gb.soundBuffer.samples_avail() >= buf_size ) {
+				// Play whatever samples are available
+				long count = gb.soundBuffer.read_samples( buf, buf_size );
+				gb.sound.write( buf, count );
+			}
 		}
+		{
+			GB_PROFILE(Render);
 
-		ImGui::Render();
-		ImGui_ImplOpenGL3_RenderDrawData( ImGui::GetDrawData() );
+			{
+				GB_PROFILE(Draw main buffer);
+				gb.ppu.drawingBuffer->Draw();
+			}
 
-		glViewport(0, 0, (int)io.DisplaySize.x, (int)io.DisplaySize.y);
-        glClearColor(0, 0, 0, 1);
-        glClear(GL_COLOR_BUFFER_BIT);
-        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-        SDL_GL_SwapWindow(window.glWindow);
+			{
+				GB_PROFILE(Render ImGui);
+				ImGui::Render();
+				ImGui_ImplOpenGL3_RenderDrawData( ImGui::GetDrawData() );
+			}
+		}
+		{
+			GB_PROFILE(Swap);
+			SDL_GL_SwapWindow(window.glWindow);
+		}
 	}
 
 	ImGui_ImplOpenGL3_Shutdown();
@@ -185,6 +185,7 @@ int main( int argc, char ** argv ) {
 
 void DrawUI() {
 	static bool showDebugWindow = true;
+	static bool showProfilerWindow = true;
 	if ( ImGui::BeginMainMenuBar() ) {
 		if ( ImGui::BeginMenu( "File" ) ) {
 			if ( ImGui::BeginMenu( "Open ROM" ) ) {
@@ -222,6 +223,9 @@ void DrawUI() {
 		if ( ImGui::MenuItem( "Debug" ) ) {
 			showDebugWindow = !showDebugWindow;
 		}
+		if ( ImGui::MenuItem( "Profile" ) ) {
+			showProfilerWindow = !showProfilerWindow;
+		}
 		float framerate = ImGui::GetIO().Framerate;
 		if ( framerate >= 59.8 && framerate <= 60.0 ) {
 			// Avoid text flickering
@@ -231,16 +235,14 @@ void DrawUI() {
 		ImGui::EndMainMenuBar();
 	}
 
-	SimpleTexture & texture = gb.ppu.drawingBuffer->texture;
-	ImGui::Begin( "Main Screen" );
-	ImGui::BeginGroup();
-	ImGui::BeginChild( ImGui::GetID( "MAIN SCREEN TEXTURE" ) );
-	ImGui::Image((void*)(texture.textureHandler), ImVec2((float)texture.width * 4, (float)texture.height * 4), ImVec2(0,0), ImVec2(1,1), ImVec4(1.0f,1.0f,1.0f,1.0f), ImVec4(1.0f,1.0f,1.0f,0.5f));
-	ImGui::EndChild();
-	ImGui::EndGroup();
-	ImGui::End();
-
 	if ( showDebugWindow ) {
 		gb.DebugDraw();
+	}
+	if ( showProfilerWindow ) {
+		ImGui::Begin( "Profiler Code" );
+		ImGui::BeginGroup();
+		Profiler::GrabInstance()->Draw();
+		ImGui::EndGroup();
+		ImGui::End();
 	}
 }

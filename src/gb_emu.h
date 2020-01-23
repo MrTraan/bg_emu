@@ -48,6 +48,12 @@ constexpr int GB_SCREEN_HEIGHT = 144;
 		DEBUG_BREAK;                                                                                                                                           \
 	}
 
+constexpr static unsigned int fnvDefaultOffsetBasis = 0x811c9dc5;
+constexpr static unsigned int fnvPrime				 = 0x1000193;
+constexpr static inline auto FnvHash(char const * const s, unsigned val = fnvDefaultOffsetBasis) -> uint32 {
+	return *s == '\0' ? val : FnvHash(s + 1, (val ^ *s) * fnvPrime);
+}
+
 struct Pixel {
 	byte R;
 	byte G;
