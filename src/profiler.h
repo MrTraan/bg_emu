@@ -2,7 +2,8 @@
 
 #include <time.h>
 #include <chrono>
-#include <vector>
+#include <map>
+#include "containers.h"
 #include "gb_emu.h"
 
 typedef std::chrono::time_point< std::chrono::steady_clock > hr_clock;
@@ -15,8 +16,7 @@ typedef std::chrono::time_point< std::chrono::steady_clock > hr_clock;
 #define CREATE_PROFILE_MARK_NAME CONCAT_LABELS(profileMark, __LINE__)
 
 // TODO: remove in release
-#define GB_PROFILE( label ) ProfilerMark CREATE_PROFILE_MARK_NAME( FnvHash( #label ), #label )
-
+#define GB_PROFILE( label ) ProfilerMark CREATE_PROFILE_MARK_NAME( COMPILE_TIME_HASH( #label ), #label )
 
 constexpr double frameTooLongThreshold = 20000;
 
@@ -25,7 +25,7 @@ struct ProfilerMark;
 struct Profiler {
 	void ImplNewFrame();
 
-	void StartProfilingMark( const ProfilerMark * mark, const char * tag );
+	void StartProfilingMark( const ProfilerMark * mark, uint64 hash, const char * tag );
 	void StopProfilingMark( const ProfilerMark * mark );
 
 	void Draw();
@@ -33,11 +33,12 @@ struct Profiler {
 	static Profiler * GrabInstance();
 
 	struct FrameInfo {
-		void Reset() { label = nullptr; totalTime = 0; children.clear(); }
+		void Reset() { label = nullptr; totalTime = 0; children.Clear(); }
 		double totalTime;
 
-		const char * label;
-		std::vector< FrameInfo > children;
+		const char * label = nullptr;
+		uint64 hash = 0;
+		DynamicArray< FrameInfo > children;
 		FrameInfo * parent = nullptr;
 	};
 	
@@ -47,23 +48,29 @@ struct Profiler {
 
 	FrameInfo currentFrame;
 	FrameInfo * currentParentPtr = nullptr;
-	std::vector< FrameInfo > frames;
+	DynamicArray< FrameInfo > frames;
 
-	std::vector< FrameInfo * > abnormalFrames;
+	DynamicArray< FrameInfo * > abnormalFrames;
 
 	hr_clock frameStartTime;
+
+	std::map< uint64, const char * > hashToString;
 };
 
 struct ProfilerMark {
-	ProfilerMark( uint32 tagHash, const char * tag ) {
-		startTime = HR_NOW();
+	ProfilerMark( uint64 tagHash, const char * tag ) {
 		Profiler * prof = Profiler::GrabInstance();
-		prof->StartProfilingMark( this, tag );
+		if ( prof->isActive == false )
+			return;
+		startTime = HR_NOW();
+		prof->StartProfilingMark( this, tagHash, tag );
 	}
 
 	~ProfilerMark() {
-		endTime = HR_NOW();
 		Profiler * prof = Profiler::GrabInstance();
+		if ( prof->isActive == false )
+			return;
+		endTime = HR_NOW();
 		prof->StopProfilingMark( this );
 	}
 

@@ -42,6 +42,7 @@ int Cpu::ExecuteNextOPCode( Gameboy * gb ) {
 }
 
 void Cpu::UpdateTimer( int clock, Gameboy * gb ) {
+	GB_PROFILE(Cpu::UpdateTimer);
 	divider += clock;
 	if ( divider >= 255 ) {
 		divider -= 255;
@@ -238,6 +239,8 @@ static uint16 interruptAddresses[] = {
 };
 
 int Cpu::ProcessInterupts( Gameboy * gb ) {
+	//GB_PROFILE(Cpu::ProcessInterupts);
+	ProfilerMark foo(CompileTimeHash<FnvHash("Cpu::ProcessInterupts")>::Value(), "Cpu::ProcessInterupts" );
 	if ( interuptsEnabled ) {
 		interuptsOn = true;
 		interuptsEnabled = false;

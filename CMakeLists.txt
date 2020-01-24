@@ -44,6 +44,9 @@ WIN32
 "./src/simple_texture.h"
 "./src/profiler.h"
 "./src/profiler.cpp"
+"./src/sys.h"
+"./src/sys.cpp"
+"./src/containers.h"
 "./src/gui/window.h"
 "./src/gui/textured_rectangle.h"
 "./src/gui/textured_rectangle.cpp"
@@ -74,5 +77,9 @@ WIN32
 "./src/imgui/imgui_impl_opengl3.cpp"
 )
 
-
 target_link_libraries(gb_emu ${SDL2_LIBRARIES})
+
+if (WIN32)
+	add_custom_command(TARGET gb_emu POST_BUILD
+	COMMAND ${CMAKE_COMMAND} -E copy_if_different "${PROJECT_SOURCE_DIR}/${SDL2_DIR}/lib/x64/SDL2.dll" $<TARGET_FILE_DIR:gb_emu>)
+endif()
