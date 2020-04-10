@@ -3,9 +3,7 @@
 #include "cpu.h"
 #include "gameboy.h"
 #include <imgui/imgui.h>
-#include <glad/glad.h>
 #include "gui/window.h"
-#include "profiler.h"
 
 constexpr int lcdMode1Bounds = 144;
 constexpr int lcdMode2Bounds = 376;
@@ -57,7 +55,6 @@ bool Ppu::IsLcdOn(Gameboy * gb) {
 }
 
 void Ppu::Update(int cycles, Gameboy * gb) {
-	GB_PROFILE(Ppu::Update);
 	byte status = gb->Read(0xff41);
 
 	if (!IsLcdOn(gb)) {

@@ -2,7 +2,7 @@
 #include <thread>
 #include <chrono>
 #include <iostream>
-#include <glad/glad.h>
+#include <GL/gl3w.h>
 #include <imgui/imgui.h>
 #include <imgui/imgui_impl_sdl.h>
 #include <imgui/imgui_impl_opengl3.h>
@@ -25,7 +25,6 @@ GBEMU_UNSUPPORTED_PLATFORM
 #include "sound/Gb_Apu.h"
 #include "sound/Multi_Buffer.h"
 #include "sound/Sound_Queue.h"
-#include "profiler.h"
 #include "sys.h"
 
 void DrawUI();
@@ -133,8 +132,6 @@ int main( int argc, char ** argv ) {
 		ImGui_ImplSDL2_NewFrame( window.glWindow );
 		ImGui::NewFrame();
 
-		Profiler::GrabInstance()->ImplNewFrame();
-
 		if ( show_demo_window ) {
 			ImGui::ShowDemoWindow( &show_demo_window );
 		}
@@ -144,7 +141,6 @@ int main( int argc, char ** argv ) {
 		gb.RunOneFrame();
 
 		{
-			GB_PROFILE(Audio);
 			int const				buf_size = 4096;
 			static blip_sample_t	buf[ buf_size ];
 
@@ -156,24 +152,10 @@ int main( int argc, char ** argv ) {
 				gb.sound.write( buf, count );
 			}
 		}
-		{
-			GB_PROFILE(Render);
-
-			{
-				GB_PROFILE(Draw main buffer);
-				gb.ppu.drawingBuffer->Draw();
-			}
-
-			{
-				GB_PROFILE(Render ImGui);
-				ImGui::Render();
-				ImGui_ImplOpenGL3_RenderDrawData( ImGui::GetDrawData() );
-			}
-		}
-		{
-			GB_PROFILE(Swap);
-			SDL_GL_SwapWindow(window.glWindow);
-		}
+		gb.ppu.drawingBuffer->Draw();
+		ImGui::Render();
+		ImGui_ImplOpenGL3_RenderDrawData( ImGui::GetDrawData() );
+		SDL_GL_SwapWindow(window.glWindow);
 	}
 
 	ImGui_ImplOpenGL3_Shutdown();
@@ -188,7 +170,6 @@ int main( int argc, char ** argv ) {
 
 void DrawUI() {
 	static bool showDebugWindow = true;
-	static bool showProfilerWindow = true;
 	if ( ImGui::BeginMainMenuBar() ) {
 		if ( ImGui::BeginMenu( "File" ) ) {
 			if ( ImGui::BeginMenu( "Open ROM" ) ) {
@@ -226,9 +207,6 @@ void DrawUI() {
 		if ( ImGui::MenuItem( "Debug" ) ) {
 			showDebugWindow = !showDebugWindow;
 		}
-		if ( ImGui::MenuItem( "Profile" ) ) {
-			showProfilerWindow = !showProfilerWindow;
-		}
 		float framerate = ImGui::GetIO().Framerate;
 		if ( framerate >= 59.8 && framerate <= 60.0 ) {
 			// Avoid text flickering
@@ -240,12 +218,5 @@ void DrawUI() {
 
 	if ( showDebugWindow ) {
 		gb.DebugDraw();
-	}
-	if ( showProfilerWindow ) {
-		ImGui::Begin( "Profiler Code" );
-		ImGui::BeginGroup();
-		Profiler::GrabInstance()->Draw();
-		ImGui::EndGroup();
-		ImGui::End();
 	}
 }

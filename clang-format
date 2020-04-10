@@ -1,9 +1,0 @@
-﻿---
-BasedOnStyle: Chromium
-BinPackParameters: 'false'
-SpaceInEmptyParentheses: 'false'
-SpacesInAngles: 'true'
-SpacesInParentheses: 'true'
-UseTab: 'ForIndentation'
-
-...

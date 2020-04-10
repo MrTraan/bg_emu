@@ -2,7 +2,6 @@
 #include "cpu.h"
 #include "cb_opcodes.h"
 #include "gameboy.h"
-#include "profiler.h"
 
 static int opcodeCyclesCost[] = {
 //  0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f
@@ -26,7 +25,6 @@ static int opcodeCyclesCost[] = {
 
 // Return Cycles used
 int Cpu::ExecuteNextOPCode( Gameboy * gb ) {
-	GB_PROFILE( Cpu::ExecuteNextOPCode );
 	// All instructions are detailled here : https://www.pastraiser.com/cpu/gameboy/gameboy_opcodes.html
 	byte	opcode = PopPC( gb );
 	int		ticksUsed = opcodeCyclesCost[ opcode ] * 4;
@@ -42,7 +40,6 @@ int Cpu::ExecuteNextOPCode( Gameboy * gb ) {
 }
 
 void Cpu::UpdateTimer( int clock, Gameboy * gb ) {
-	GB_PROFILE(Cpu::UpdateTimer);
 	divider += clock;
 	if ( divider >= 255 ) {
 		divider -= 255;
@@ -239,8 +236,6 @@ static uint16 interruptAddresses[] = {
 };
 
 int Cpu::ProcessInterupts( Gameboy * gb ) {
-	//GB_PROFILE(Cpu::ProcessInterupts);
-	ProfilerMark foo(CompileTimeHash<FnvHash("Cpu::ProcessInterupts")>::Value(), "Cpu::ProcessInterupts" );
 	if ( interuptsEnabled ) {
 		interuptsOn = true;
 		interuptsEnabled = false;

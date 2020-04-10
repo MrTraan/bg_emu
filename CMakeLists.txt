@@ -20,9 +20,9 @@ set(OpenGL_GL_PREFERENCE GLVND)
 find_package(OpenGL REQUIRED)
 find_package(SDL2 REQUIRED)
 
-include_directories("./inc" "./lib" "./src" ${SDL2_INCLUDE_DIRS})
+include_directories("./lib" "./src" ${SDL2_INCLUDE_DIRS})
 
-add_definitions(-DIMGUI_IMPL_OPENGL_LOADER_GLAD)
+add_definitions(-DIMGUI_IMPL_OPENGL_LOADER_GL3W)
 
 # Include sub-projects.
 # Add source to this project's executable.
@@ -42,8 +42,6 @@ WIN32
 "./src/rom.h"
 "./src/rom.cpp"
 "./src/simple_texture.h"
-"./src/profiler.h"
-"./src/profiler.cpp"
 "./src/sys.h"
 "./src/sys.cpp"
 "./src/containers.h"
@@ -67,7 +65,7 @@ WIN32
 "./src/sound/Wave_Writer.cpp"
 "./src/sound/Wave_Writer.h"
 
-"src/gui/glad.c"
+"src/gl3w.c"
 # imgui
 "./src/imgui/imgui.cpp"
 "./src/imgui/imgui_widgets.cpp"
