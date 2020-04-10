@@ -42,8 +42,7 @@ WIN32
 "./src/rom.h"
 "./src/rom.cpp"
 "./src/simple_texture.h"
-"./src/sys.h"
-"./src/sys.cpp"
+
 "./src/containers.h"
 "./src/gui/window.h"
 "./src/gui/textured_rectangle.h"

@@ -25,7 +25,6 @@ GBEMU_UNSUPPORTED_PLATFORM
 #include "sound/Gb_Apu.h"
 #include "sound/Multi_Buffer.h"
 #include "sound/Sound_Queue.h"
-#include "sys.h"
 
 void DrawUI();
 
@@ -76,8 +75,6 @@ GBEMU_UNSUPPORTED_PLATFORM
 }
 
 int main( int argc, char ** argv ) {
-	InitSys();
-
 	const char * romPath;
 	if ( argc == 2 ) {
 		romPath = argv[ 1 ];
